@@ -1,6 +1,7 @@
 "use client";
 
 import { CodeSnippet } from "@/components/code-snippet";
+import { MixedText } from "@/components/mixed-text";
 import { buildConceptExplanations } from "@/lib/concept-glossary";
 import { Question } from "@/lib/types";
 
@@ -40,7 +41,7 @@ export function ExplanationModal({
         <h3 className="mb-2 text-xl font-semibold text-amber">
           {isCorrect ? "תשובה נכונה, ממשיכים" : "פירוק הטעות וההיגיון הנכון"}
         </h3>
-        <p className="mb-3 text-sm text-fog/90">{question.questionText}</p>
+        <MixedText text={question.questionText} as="p" className="mb-3 text-sm text-fog/90" />
 
         <div
           className={`mb-4 rounded-xl border p-3 text-sm ${
@@ -75,38 +76,45 @@ export function ExplanationModal({
             >
               {isCorrect ? "הבחירה שלך (נכונה)" : "הבחירה שלך"}
             </p>
-            <p className="mt-1 text-sm text-fog">{selectedText}</p>
-            <p className="mt-2 text-sm text-fog/85">{selectedExplanation}</p>
+            <MixedText text={selectedText} as="p" className="mt-1 text-sm text-fog" />
+            <MixedText text={selectedExplanation} as="p" className="mt-2 text-sm text-fog/85" />
           </div>
           <div className="rounded-xl border border-sky/35 bg-sky/10 p-3">
             <p className="text-xs uppercase tracking-wide text-sky">למה זו התשובה הנכונה</p>
-            <p className="mt-1 text-sm text-fog">
-              {question.options[question.correctAnswerIndex]}
-            </p>
-            <p className="mt-2 text-sm text-fog/90">{question.explanation}</p>
+            <MixedText
+              text={question.options[question.correctAnswerIndex]}
+              as="p"
+              className="mt-1 text-sm text-fog"
+            />
+            <MixedText text={question.explanation} as="p" className="mt-2 text-sm text-fog/90" />
           </div>
         </div>
 
         <div className="mt-4 rounded-xl border border-sky/35 bg-[#0c2947]/60 p-3 text-sm text-fog/95">
           <p className="font-semibold text-sky">הסבר מפורט צעד-אחר-צעד</p>
-          <p className="mt-2">
-            בשאלה הזו בדקנו את הנושא <span className="text-sky">{question.topic}</span>
-            {question.subtopic ? (
-              <>
-                {" "}
-                ותת-הנושא <span className="text-sky">{question.subtopic}</span>
-              </>
-            ) : null}
-            . כדי לפתור נכון, כדאי לעבוד בשלושה צעדים קבועים:
-          </p>
+          <MixedText
+            text={`בשאלה הזו בדקנו את הנושא ${question.topic}${
+              question.subtopic ? ` ותת-הנושא ${question.subtopic}` : ""
+            }. כדי לפתור נכון, כדאי לעבוד בשלושה צעדים קבועים:`}
+            as="p"
+            className="mt-2"
+          />
           <ol className="mt-2 space-y-1">
-            <li>1. לזהות מה כל שורה בקוד עושה בפועל.</li>
-            <li>2. לבדוק טיפוסים ולוגיקה (למשל Bool, comparison, assignment).</li>
-            <li>3. להשוות את התוצאה הסופית לאפשרויות, ואז לבחור.</li>
+            <li>
+              <MixedText text="1. לזהות מה כל שורה בקוד עושה בפועל." />
+            </li>
+            <li>
+              <MixedText text="2. לבדוק טיפוסים ולוגיקה (למשל Bool, comparison, assignment)." />
+            </li>
+            <li>
+              <MixedText text="3. להשוות את התוצאה הסופית לאפשרויות, ואז לבחור." />
+            </li>
           </ol>
-          <p className="mt-2">
-            במקרה הנוכחי, ההיגיון הנכון הוא: <span className="text-sky">{question.explanation}</span>
-          </p>
+          <MixedText
+            text={`במקרה הנוכחי, ההיגיון הנכון הוא: ${question.explanation}`}
+            as="p"
+            className="mt-2"
+          />
         </div>
 
         <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
@@ -114,7 +122,9 @@ export function ExplanationModal({
           <ul className="space-y-1 text-sm text-fog/80">
             {question.options.map((option, index) => (
               <li key={option + index}>
-                {index + 1}. {option} - {question.wrongOptionExplanations[index]}
+                <MixedText
+                  text={`${index + 1}. ${option} - ${question.wrongOptionExplanations[index]}`}
+                />
               </li>
             ))}
           </ul>
@@ -122,7 +132,7 @@ export function ExplanationModal({
 
         <div className="mt-4 rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm text-fog">
           <p className="font-semibold text-sky">כלל קצר לזכור</p>
-          <p>{question.hint}</p>
+          <MixedText text={question.hint} as="p" />
         </div>
 
         {conceptExplanations.length > 0 ? (
@@ -131,8 +141,8 @@ export function ExplanationModal({
             <ul className="space-y-2 text-sm text-fog/90">
               {conceptExplanations.map((concept) => (
                 <li key={concept.term}>
-                  <p className="font-semibold text-sky">{concept.term}</p>
-                  <p>{concept.explanation}</p>
+                  <MixedText text={concept.term} as="p" className="font-semibold text-sky" />
+                  <MixedText text={concept.explanation} as="p" />
                 </li>
               ))}
             </ul>

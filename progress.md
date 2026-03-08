@@ -66,3 +66,12 @@ Original prompt: "מעולה. הנה PRD מלא ומפורט למשחק שלך �
   - Added sky-colored concept glossary panel per question.
 - Translated code snippet controls (expand/collapse/copy) to Hebrew.
 - Validation: `npm run typecheck` passes.
+- Applied full RTL baseline:
+  - `dir="rtl"` at document root
+  - global RTL direction + right-aligned body text
+- Added mixed-language rendering component (`MixedText`):
+  - English fragments are now isolated in dedicated LTR chips to prevent bidi breakage.
+  - Integrated into battle question text/options, explanation modal details, review cards, world cards, and library text.
+- Upgraded code presentation to syntax-highlighted rendering:
+  - tokenized Swift/SwiftUI snippets with keyword/type/string/number/comment/function/attribute colors.
+  - kept code blocks LTR while app remains RTL.

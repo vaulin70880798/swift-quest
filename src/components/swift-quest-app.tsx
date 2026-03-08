@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { CodeSnippet } from "@/components/code-snippet";
 import { ExplanationModal } from "@/components/explanation-modal";
+import { MixedText } from "@/components/mixed-text";
 import { worlds } from "@/lib/curriculum";
 import {
   applyAnswer,
@@ -106,7 +107,7 @@ function getTodayDateKey(): string {
 
 export function SwiftQuestApp() {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [nameInput, setNameInput] = useState("לומד Swift");
+  const [nameInput, setNameInput] = useState("לומד");
   const [screen, setScreen] = useState<Screen>("welcome");
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
@@ -208,7 +209,7 @@ export function SwiftQuestApp() {
   }, [player]);
 
   const onNewGame = () => {
-    const nextPlayer = createInitialPlayer(nameInput.trim() || "לומד Swift");
+    const nextPlayer = createInitialPlayer(nameInput.trim() || "לומד");
     setPlayer(nextPlayer);
     setSummary(null);
     setBattle(null);
@@ -434,11 +435,13 @@ export function SwiftQuestApp() {
     return (
       <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-12">
         <section className="card w-full max-w-xl rounded-2xl p-6">
-          <p className="text-xs uppercase tracking-[0.25em] text-sky">Swift Quest</p>
-          <h1 className="mt-2 text-3xl font-semibold text-fog">מסע לימוד קוד בסגנון RPG</h1>
-          <p className="mt-3 text-sm text-fog/85">
-            מהדורת MVP 1: עולם ראשון, קרבות קוד, XP, מטבעות, מנגנון חזרה חכם והסבר מפורט אחרי כל טעות.
-          </p>
+          <MixedText text="Swift Quest" as="p" className="text-xs uppercase tracking-[0.25em] text-sky" />
+          <MixedText text="מסע לימוד קוד בסגנון RPG" as="h1" className="mt-2 text-3xl font-semibold text-fog" />
+          <MixedText
+            text="מהדורת MVP 1: עולם ראשון, קרבות קוד, ניסיון, מטבעות, מנגנון חזרה חכם והסבר מפורט אחרי כל טעות."
+            as="p"
+            className="mt-3 text-sm text-fog/85"
+          />
 
           <label className="mt-5 block text-sm text-fog/90" htmlFor="nameInput">
             שם שחקן
@@ -482,11 +485,11 @@ export function SwiftQuestApp() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-sky">בסיס הבית</p>
-            <h1 className="text-2xl font-semibold text-fog">{player.username}</h1>
+            <MixedText text={player.username} as="h1" className="text-2xl font-semibold text-fog" />
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
             <span className="rounded-lg border border-fog/25 px-3 py-1">רמה {player.level}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">XP {player.xp}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">ניסיון {player.xp}</span>
             <span className="rounded-lg border border-fog/25 px-3 py-1">מטבעות {player.coins}</span>
             <span className="rounded-lg border border-fog/25 px-3 py-1">רצף {player.streak}</span>
           </div>
@@ -496,7 +499,7 @@ export function SwiftQuestApp() {
       {screen === "home" ? (
         <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
           <article className="card rounded-2xl p-5">
-            <h2 className="text-xl font-semibold text-fog">מרכז הפיקוד של Swift Quest</h2>
+            <MixedText text="מרכז הפיקוד של Swift Quest" as="h2" className="text-xl font-semibold text-fog" />
             <p className="mt-2 text-sm text-fog/80">
               לולאה מומלצת לסשן של 15-20 דקות: חזרה קצרה, שלב קרב, תגמול וסיכום.
             </p>
@@ -514,7 +517,7 @@ export function SwiftQuestApp() {
                 onClick={startReviewBattle}
                 type="button"
               >
-                מצב חזרה (Review)
+                <MixedText text="מצב חזרה (Review)" />
               </button>
               <button
                 className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
@@ -535,7 +538,7 @@ export function SwiftQuestApp() {
                 onClick={() => setScreen("library")}
                 type="button"
               >
-                ספריית Codex
+                <MixedText text="ספריית Codex" />
               </button>
               <button
                 className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
@@ -550,7 +553,7 @@ export function SwiftQuestApp() {
               <div className="mt-5 rounded-xl border border-sky/35 bg-sky/10 p-4">
                 <p className="text-sm font-semibold text-sky">הסשן האחרון</p>
                 <p className="mt-1 text-sm text-fog">
-                  {summary.correctAnswers}/{summary.totalQuestions} נכונות | XP +{summary.xpEarned} | מטבעות +{summary.coinsEarned}
+                  {summary.correctAnswers}/{summary.totalQuestions} נכונות | ניסיון +{summary.xpEarned} | מטבעות +{summary.coinsEarned}
                 </p>
                 <p className="mt-2 text-xs text-fog/80">זכור את קטע הקוד הזה:</p>
                 <CodeSnippet code={summary.memorySnippet} language="swift" />
@@ -607,13 +610,13 @@ export function SwiftQuestApp() {
                   }`}
                 >
                   <p className="text-xs uppercase tracking-widest text-fog/70">עולם {world.id}</p>
-                  <h3 className="mt-1 text-lg font-semibold text-fog">{world.name}</h3>
-                  <p className="mt-1 text-sm text-fog/80">{world.description}</p>
+                  <MixedText text={world.name} as="h3" className="mt-1 text-lg font-semibold text-fog" />
+                  <MixedText text={world.description} as="p" className="mt-1 text-sm text-fog/80" />
 
                   <div className="mt-3 flex flex-wrap gap-1 text-xs text-fog/75">
                     {world.topicCoverage.slice(0, 3).map((topic) => (
                       <span key={topic} className="rounded-full border border-white/15 px-2 py-1">
-                        {topic}
+                        <MixedText text={topic} />
                       </span>
                     ))}
                   </div>
@@ -637,10 +640,13 @@ export function SwiftQuestApp() {
         <section className="space-y-4">
           <div className="card rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <p className="text-fog/80">
-                {battle.mode === "review" ? "קרב חזרה" : "קרב עולם"} | שאלה {battle.currentIndex + 1}/
-                {battle.questions.length}
-              </p>
+              <MixedText
+                text={`${battle.mode === "review" ? "קרב חזרה" : "קרב עולם"} | שאלה ${
+                  battle.currentIndex + 1
+                }/${battle.questions.length}`}
+                as="p"
+                className="text-fog/80"
+              />
               <button
                 className="rounded-lg border border-fog/35 px-3 py-1 text-fog hover:bg-fog/10"
                 onClick={() => {
@@ -655,10 +661,16 @@ export function SwiftQuestApp() {
           </div>
 
           <article className="card rounded-2xl p-5">
-            <p className="text-xs uppercase tracking-wide text-amber">
-              {currentQuestion.topic} · {currentQuestion.difficulty}
-            </p>
-            <h2 className="mt-2 text-xl font-semibold text-fog">{currentQuestion.questionText}</h2>
+            <MixedText
+              text={`${currentQuestion.topic} · ${currentQuestion.difficulty}`}
+              as="p"
+              className="text-xs uppercase tracking-wide text-amber"
+            />
+            <MixedText
+              text={currentQuestion.questionText}
+              as="h2"
+              className="mt-2 text-xl font-semibold text-fog"
+            />
 
             {currentQuestion.codeSnippet ? (
               <div className="mt-4">
@@ -673,12 +685,12 @@ export function SwiftQuestApp() {
               {currentQuestion.options.map((option, index) => (
                 <button
                   key={`${currentQuestion.id}-${option}`}
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-3 text-left text-sm text-fog transition hover:border-sky/40 hover:bg-sky/10"
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-3 text-right text-sm text-fog transition hover:border-sky/40 hover:bg-sky/10"
                   onClick={() => onPickAnswer(index)}
                   type="button"
                   disabled={Boolean(battle.pendingExplanation)}
                 >
-                  {index + 1}. {option}
+                  <MixedText text={`${index + 1}. ${option}`} />
                 </button>
               ))}
             </div>
@@ -706,7 +718,7 @@ export function SwiftQuestApp() {
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm">
-              <p className="text-fog/80">XP שנצבר</p>
+              <p className="text-fog/80">ניסיון שנצבר</p>
               <p className="text-xl font-semibold text-sky">+{summary.xpEarned}</p>
             </div>
             <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-sm">
@@ -715,12 +727,16 @@ export function SwiftQuestApp() {
             </div>
             <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-sm">
               <p className="text-fog/80">נושאים חלשים</p>
-              <p className="text-sm text-fog">{summary.weakTopics.join(", ") || "אין כרגע"}</p>
+              <MixedText
+                text={summary.weakTopics.join(", ") || "אין כרגע"}
+                as="p"
+                className="text-sm text-fog"
+              />
             </div>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
-            <p className="text-sm font-semibold text-fog">Snippet לזכירה</p>
+            <p className="text-sm font-semibold text-fog">קטע קוד לזכירה</p>
             <CodeSnippet code={summary.memorySnippet} language="swift" />
           </div>
 
@@ -810,10 +826,16 @@ export function SwiftQuestApp() {
                 <article key={question.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-amber">
-                        {question.topic} · {question.difficulty}
-                      </p>
-                      <h3 className="mt-1 text-base font-semibold text-fog">{question.questionText}</h3>
+                      <MixedText
+                        text={`${question.topic} · ${question.difficulty}`}
+                        as="p"
+                        className="text-xs uppercase tracking-wide text-amber"
+                      />
+                      <MixedText
+                        text={question.questionText}
+                        as="h3"
+                        className="mt-1 text-base font-semibold text-fog"
+                      />
                     </div>
                     <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-fog/85">
                       {questionStateLabel(state)}
@@ -887,7 +909,7 @@ export function SwiftQuestApp() {
                 {masteryEntries.map((entry) => (
                   <div key={entry.topic}>
                     <div className="mb-1 flex items-center justify-between text-sm text-fog/90">
-                      <span>{entry.topic}</span>
+                      <MixedText text={entry.topic} />
                       <span>{entry.value}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-white/10">
@@ -916,7 +938,7 @@ export function SwiftQuestApp() {
                       {formatSessionDate(session.endedAtISO)} · עולם {session.worldId}
                     </p>
                     <p className="mt-1 text-fog/75">
-                      {session.correctAnswers}/{session.totalQuestions} נכונות · +{session.xpEarned} XP · +{session.coinsEarned} מטבעות
+                      {session.correctAnswers}/{session.totalQuestions} נכונות · +{session.xpEarned} ניסיון · +{session.coinsEarned} מטבעות
                     </p>
                   </div>
                 ))}
@@ -929,7 +951,7 @@ export function SwiftQuestApp() {
       {screen === "library" ? (
         <section className="card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-fog">ספריית Codex</h2>
+            <MixedText text="ספריית Codex" as="h2" className="text-xl font-semibold text-fog" />
             <button
               className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
               onClick={() => setScreen("home")}
@@ -942,14 +964,16 @@ export function SwiftQuestApp() {
           <div className="space-y-4">
             {codexLibrary.map((topic) => (
               <article key={topic.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
-                <h3 className="text-lg font-semibold text-fog">{topic.title}</h3>
-                <p className="mt-1 text-sm text-fog/85">{topic.summary}</p>
+                <MixedText text={topic.title} as="h3" className="text-lg font-semibold text-fog" />
+                <MixedText text={topic.summary} as="p" className="mt-1 text-sm text-fog/85" />
 
                 <div className="mt-3">
                   <p className="mb-1 text-xs uppercase tracking-wide text-amber">טעויות נפוצות</p>
                   <ul className="space-y-1 text-sm text-fog/80">
                     {topic.commonMistakes.map((mistake) => (
-                      <li key={mistake}>- {mistake}</li>
+                      <li key={mistake}>
+                        <MixedText text={`- ${mistake}`} />
+                      </li>
                     ))}
                   </ul>
                 </div>
@@ -958,7 +982,11 @@ export function SwiftQuestApp() {
                   <CodeSnippet code={topic.snippet} language="swift" />
                 </div>
 
-                <p className="mt-3 text-xs text-fog/70">קשור לנושאים: {topic.related.join(" • ")}</p>
+                <MixedText
+                  text={`קשור לנושאים: ${topic.related.join(" • ")}`}
+                  as="p"
+                  className="mt-3 text-xs text-fog/70"
+                />
               </article>
             ))}
           </div>
