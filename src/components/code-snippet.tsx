@@ -26,21 +26,21 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
   return (
     <div className="rounded-xl border border-white/15 bg-black/30 p-3">
       <div className="mb-2 flex items-center justify-between text-xs text-fog/80">
-        <span>{language === "swiftui" ? "SwiftUI" : "Swift"} snippet</span>
+        <span>{language === "swiftui" ? "קטע קוד SwiftUI" : "קטע קוד Swift"}</span>
         <div className="flex gap-2">
           <button
             className="rounded-md border border-sky/40 px-2 py-1 text-fog hover:bg-sky/10"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
-            {expanded ? "Collapse" : "Expand"}
+            {expanded ? "צמצום" : "הרחבה"}
           </button>
           <button
             className="rounded-md border border-amber/40 px-2 py-1 text-fog hover:bg-amber/10"
             onClick={onCopy}
             type="button"
           >
-            {copied ? "Copied" : "Copy"}
+            {copied ? "הועתק" : "העתק"}
           </button>
         </div>
       </div>

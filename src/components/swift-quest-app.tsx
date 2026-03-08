@@ -77,17 +77,17 @@ function getQuestionState(player: Player, question: Question): QuestionState {
 function questionStateLabel(state: QuestionState): string {
   switch (state) {
     case "new":
-      return "New";
+      return "חדש";
     case "learning":
-      return "Learning";
+      return "בלמידה";
     case "review_soon":
-      return "Review Soon";
+      return "חזרה בקרוב";
     case "review_later":
-      return "Review Later";
+      return "חזרה מאוחרת";
     case "mastered":
-      return "Mastered";
+      return "בשליטה";
     default:
-      return "New";
+      return "חדש";
   }
 }
 
@@ -106,7 +106,7 @@ function getTodayDateKey(): string {
 
 export function SwiftQuestApp() {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [nameInput, setNameInput] = useState("Swift Learner");
+  const [nameInput, setNameInput] = useState("לומד Swift");
   const [screen, setScreen] = useState<Screen>("welcome");
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
@@ -208,7 +208,7 @@ export function SwiftQuestApp() {
   }, [player]);
 
   const onNewGame = () => {
-    const nextPlayer = createInitialPlayer(nameInput.trim() || "Swift Learner");
+    const nextPlayer = createInitialPlayer(nameInput.trim() || "לומד Swift");
     setPlayer(nextPlayer);
     setSummary(null);
     setBattle(null);
@@ -437,7 +437,7 @@ export function SwiftQuestApp() {
           <p className="text-xs uppercase tracking-[0.25em] text-sky">Swift Quest</p>
           <h1 className="mt-2 text-3xl font-semibold text-fog">מסע לימוד קוד בסגנון RPG</h1>
           <p className="mt-3 text-sm text-fog/85">
-            מהדורת MVP 1: עולם ראשון, קרבות קוד, XP, coins, review חכם והסבר מפורט אחרי כל טעות.
+            מהדורת MVP 1: עולם ראשון, קרבות קוד, XP, מטבעות, מנגנון חזרה חכם והסבר מפורט אחרי כל טעות.
           </p>
 
           <label className="mt-5 block text-sm text-fog/90" htmlFor="nameInput">
@@ -456,7 +456,7 @@ export function SwiftQuestApp() {
               onClick={onNewGame}
               type="button"
             >
-              New Game
+              משחק חדש
             </button>
             <button
               className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
@@ -464,7 +464,7 @@ export function SwiftQuestApp() {
               type="button"
               disabled
             >
-              Continue
+              המשך
             </button>
           </div>
         </section>
@@ -481,14 +481,14 @@ export function SwiftQuestApp() {
       <header className="card mb-5 rounded-2xl p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-sky">Home Base</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-sky">בסיס הבית</p>
             <h1 className="text-2xl font-semibold text-fog">{player.username}</h1>
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
-            <span className="rounded-lg border border-fog/25 px-3 py-1">Level {player.level}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">רמה {player.level}</span>
             <span className="rounded-lg border border-fog/25 px-3 py-1">XP {player.xp}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">Coins {player.coins}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">Streak {player.streak}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">מטבעות {player.coins}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">רצף {player.streak}</span>
           </div>
         </div>
       </header>
@@ -496,9 +496,9 @@ export function SwiftQuestApp() {
       {screen === "home" ? (
         <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
           <article className="card rounded-2xl p-5">
-            <h2 className="text-xl font-semibold text-fog">Swift Quest Hub</h2>
+            <h2 className="text-xl font-semibold text-fog">מרכז הפיקוד של Swift Quest</h2>
             <p className="mt-2 text-sm text-fog/80">
-              הלולאה המומלצת לסשן 15-20 דקות: review קצר, battle stage, reward, summary.
+              לולאה מומלצת לסשן של 15-20 דקות: חזרה קצרה, שלב קרב, תגמול וסיכום.
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
@@ -507,42 +507,42 @@ export function SwiftQuestApp() {
                 onClick={() => setScreen("world_map")}
                 type="button"
               >
-                Worlds
+                עולמות
               </button>
               <button
                 className="rounded-lg border border-amber/55 px-4 py-2 font-semibold text-amber hover:bg-amber/10"
                 onClick={startReviewBattle}
                 type="button"
               >
-                Review Mode
+                מצב חזרה (Review)
               </button>
               <button
                 className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
                 onClick={() => setScreen("review")}
                 type="button"
               >
-                Review Queue
+                תור חזרה
               </button>
               <button
                 className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
                 onClick={() => setScreen("stats")}
                 type="button"
               >
-                Stats
+                סטטיסטיקות
               </button>
               <button
                 className="rounded-lg border border-mint/55 px-4 py-2 font-semibold text-mint hover:bg-mint/10"
                 onClick={() => setScreen("library")}
                 type="button"
               >
-                Codex Library
+                ספריית Codex
               </button>
               <button
                 className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
                 onClick={claimDailyReward}
                 type="button"
               >
-                Daily Login Reward
+                בונוס התחברות יומי
               </button>
             </div>
 
@@ -550,9 +550,9 @@ export function SwiftQuestApp() {
               <div className="mt-5 rounded-xl border border-sky/35 bg-sky/10 p-4">
                 <p className="text-sm font-semibold text-sky">הסשן האחרון</p>
                 <p className="mt-1 text-sm text-fog">
-                  {summary.correctAnswers}/{summary.totalQuestions} נכונות | XP +{summary.xpEarned} | Coins +{summary.coinsEarned}
+                  {summary.correctAnswers}/{summary.totalQuestions} נכונות | XP +{summary.xpEarned} | מטבעות +{summary.coinsEarned}
                 </p>
-                <p className="mt-2 text-xs text-fog/80">זכור את ה-snippet הזה:</p>
+                <p className="mt-2 text-xs text-fog/80">זכור את קטע הקוד הזה:</p>
                 <CodeSnippet code={summary.memorySnippet} language="swift" />
               </div>
             ) : null}
@@ -560,7 +560,7 @@ export function SwiftQuestApp() {
 
           <aside className="space-y-4">
             <div className="card rounded-2xl p-4">
-              <p className="text-sm font-semibold text-fog">Mastery חלש כרגע</p>
+              <p className="text-sm font-semibold text-fog">נושאים חלשים כרגע</p>
               <ul className="mt-2 space-y-2 text-sm text-fog/90">
                 {weakTopics.length === 0 ? <li>אין מספיק נתונים עדיין.</li> : null}
                 {weakTopics.map((entry) => (
@@ -573,7 +573,7 @@ export function SwiftQuestApp() {
             </div>
 
             <div className="card rounded-2xl p-4">
-              <p className="text-sm font-semibold text-fog">Review Queue</p>
+              <p className="text-sm font-semibold text-fog">תור חזרה</p>
               <p className="mt-1 text-2xl font-semibold text-sky">{player.reviewQueue.length}</p>
               <p className="mt-1 text-xs text-fog/75">שאלות שסומנו לחזרה חכמה.</p>
             </div>
@@ -584,13 +584,13 @@ export function SwiftQuestApp() {
       {screen === "world_map" ? (
         <section className="card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-fog">World Map</h2>
+            <h2 className="text-xl font-semibold text-fog">מפת העולמות</h2>
             <button
               className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
               onClick={() => setScreen("home")}
               type="button"
             >
-              Back
+              חזרה
             </button>
           </div>
 
@@ -606,7 +606,7 @@ export function SwiftQuestApp() {
                       : "border-white/10 bg-white/5 opacity-65"
                   }`}
                 >
-                  <p className="text-xs uppercase tracking-widest text-fog/70">World {world.id}</p>
+                  <p className="text-xs uppercase tracking-widest text-fog/70">עולם {world.id}</p>
                   <h3 className="mt-1 text-lg font-semibold text-fog">{world.name}</h3>
                   <p className="mt-1 text-sm text-fog/80">{world.description}</p>
 
@@ -624,7 +624,7 @@ export function SwiftQuestApp() {
                     type="button"
                     disabled={!unlocked}
                   >
-                    {unlocked ? "Enter Battle" : `Unlock at level ${world.unlockRequirement.minLevel}`}
+                    {unlocked ? "כניסה לקרב" : `נפתח ברמה ${world.unlockRequirement.minLevel}`}
                   </button>
                 </article>
               );
@@ -638,7 +638,7 @@ export function SwiftQuestApp() {
           <div className="card rounded-2xl p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <p className="text-fog/80">
-                {battle.mode === "review" ? "Review Battle" : "World Battle"} | Question {battle.currentIndex + 1}/
+                {battle.mode === "review" ? "קרב חזרה" : "קרב עולם"} | שאלה {battle.currentIndex + 1}/
                 {battle.questions.length}
               </p>
               <button
@@ -649,7 +649,7 @@ export function SwiftQuestApp() {
                 }}
                 type="button"
               >
-                Exit
+                יציאה
               </button>
             </div>
           </div>
@@ -699,22 +699,22 @@ export function SwiftQuestApp() {
 
       {screen === "summary" && summary ? (
         <section className="card rounded-2xl p-5">
-          <h2 className="text-2xl font-semibold text-fog">End of Session Summary</h2>
+          <h2 className="text-2xl font-semibold text-fog">סיכום סוף סשן</h2>
           <p className="mt-2 text-sm text-fog/85">
             פתרת {summary.totalQuestions} שאלות, מתוכן {summary.correctAnswers} נכונות.
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm">
-              <p className="text-fog/80">XP Earned</p>
+              <p className="text-fog/80">XP שנצבר</p>
               <p className="text-xl font-semibold text-sky">+{summary.xpEarned}</p>
             </div>
             <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-sm">
-              <p className="text-fog/80">Coins Earned</p>
+              <p className="text-fog/80">מטבעות שנצברו</p>
               <p className="text-xl font-semibold text-amber">+{summary.coinsEarned}</p>
             </div>
             <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-sm">
-              <p className="text-fog/80">Weak Topics</p>
+              <p className="text-fog/80">נושאים חלשים</p>
               <p className="text-sm text-fog">{summary.weakTopics.join(", ") || "אין כרגע"}</p>
             </div>
           </div>
@@ -730,14 +730,14 @@ export function SwiftQuestApp() {
               onClick={() => setScreen("home")}
               type="button"
             >
-              Back to Home
+              חזרה לבית
             </button>
             <button
               className="rounded-lg border border-amber/40 px-4 py-2 text-amber hover:bg-amber/10"
               onClick={startReviewBattle}
               type="button"
             >
-              Start Review
+              התחל חזרה
             </button>
           </div>
         </section>
@@ -746,35 +746,35 @@ export function SwiftQuestApp() {
       {screen === "review" ? (
         <section className="card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-fog">Review Queue</h2>
+            <h2 className="text-xl font-semibold text-fog">תור חזרה</h2>
             <button
               className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
               onClick={() => setScreen("home")}
               type="button"
             >
-              Back
+              חזרה
             </button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-5">
             <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-center">
-              <p className="text-xs text-fog/80">Review Soon</p>
+              <p className="text-xs text-fog/80">חזרה בקרוב</p>
               <p className="text-xl font-semibold text-amber">{reviewStateCounts.review_soon}</p>
             </div>
             <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-center">
-              <p className="text-xs text-fog/80">Learning</p>
+              <p className="text-xs text-fog/80">בלמידה</p>
               <p className="text-xl font-semibold text-sky">{reviewStateCounts.learning}</p>
             </div>
             <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
-              <p className="text-xs text-fog/80">New</p>
+              <p className="text-xs text-fog/80">חדש</p>
               <p className="text-xl font-semibold text-fog">{reviewStateCounts.new}</p>
             </div>
             <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
-              <p className="text-xs text-fog/80">Review Later</p>
+              <p className="text-xs text-fog/80">חזרה מאוחרת</p>
               <p className="text-xl font-semibold text-fog">{reviewStateCounts.review_later}</p>
             </div>
             <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-center">
-              <p className="text-xs text-fog/80">Mastered</p>
+              <p className="text-xs text-fog/80">בשליטה</p>
               <p className="text-xl font-semibold text-mint">{reviewStateCounts.mastered}</p>
             </div>
           </div>
@@ -786,21 +786,21 @@ export function SwiftQuestApp() {
               type="button"
               disabled={reviewQuestions.length === 0}
             >
-              Start Queue Review
+              התחל חזרה מהתור
             </button>
             <button
               className="rounded-lg border border-fog/35 px-4 py-2 text-fog hover:bg-fog/10"
               onClick={() => setScreen("stats")}
               type="button"
             >
-              Open Stats
+              מעבר לסטטיסטיקות
             </button>
           </div>
 
           <div className="mt-5 space-y-3">
             {reviewQuestions.length === 0 ? (
               <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-fog/85">
-                אין כרגע שאלות בתור החזרה. ענה על battles או לחץ \"שמור לחזרה\" מתוך modal.
+                אין כרגע שאלות בתור החזרה. ענה על קרבות או לחץ \"שמור לחזרה\" מתוך חלון ההסבר.
               </div>
             ) : null}
 
@@ -826,14 +826,14 @@ export function SwiftQuestApp() {
                       onClick={() => startFocusedReview(question.id)}
                       type="button"
                     >
-                      Focused Drill
+                      תרגול ממוקד
                     </button>
                     <button
                       className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
                       onClick={() => removeFromReviewQueue(question.id)}
                       type="button"
                     >
-                      Remove From Queue
+                      הסר מהתור
                     </button>
                   </div>
                 </article>
@@ -846,40 +846,40 @@ export function SwiftQuestApp() {
       {screen === "stats" ? (
         <section className="card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-fog">Stats Dashboard</h2>
+            <h2 className="text-xl font-semibold text-fog">לוח סטטיסטיקות</h2>
             <button
               className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
               onClick={() => setScreen("home")}
               type="button"
             >
-              Back
+              חזרה
             </button>
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
             <div className="rounded-xl border border-sky/30 bg-sky/10 p-3">
-              <p className="text-xs text-fog/80">Accuracy</p>
+              <p className="text-xs text-fog/80">דיוק</p>
               <p className="text-2xl font-semibold text-sky">{statsSummary.accuracy}%</p>
             </div>
             <div className="rounded-xl border border-mint/30 bg-mint/10 p-3">
-              <p className="text-xs text-fog/80">Correct / Attempts</p>
+              <p className="text-xs text-fog/80">נכונות / ניסיונות</p>
               <p className="text-2xl font-semibold text-mint">
                 {statsSummary.correct}/{statsSummary.attempts}
               </p>
             </div>
             <div className="rounded-xl border border-amber/30 bg-amber/10 p-3">
-              <p className="text-xs text-fog/80">Sessions</p>
+              <p className="text-xs text-fog/80">סשנים</p>
               <p className="text-2xl font-semibold text-amber">{player.sessionHistory.length}</p>
             </div>
             <div className="rounded-xl border border-white/20 bg-white/5 p-3">
-              <p className="text-xs text-fog/80">Questions In Sessions</p>
+              <p className="text-xs text-fog/80">שאלות בסשנים</p>
               <p className="text-2xl font-semibold text-fog">{statsSummary.totalSessionQuestions}</p>
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
             <article className="rounded-xl border border-white/15 bg-white/5 p-4">
-              <h3 className="text-base font-semibold text-fog">Mastery By Topic</h3>
+              <h3 className="text-base font-semibold text-fog">רמת שליטה לפי נושא</h3>
               <div className="mt-3 space-y-3">
                 {masteryEntries.length === 0 ? (
                   <p className="text-sm text-fog/80">אין מספיק נתונים עדיין.</p>
@@ -902,7 +902,7 @@ export function SwiftQuestApp() {
             </article>
 
             <article className="rounded-xl border border-white/15 bg-white/5 p-4">
-              <h3 className="text-base font-semibold text-fog">Recent Sessions</h3>
+              <h3 className="text-base font-semibold text-fog">סשנים אחרונים</h3>
               <div className="mt-3 space-y-2">
                 {player.sessionHistory.length === 0 ? (
                   <p className="text-sm text-fog/80">אין סשנים קודמים עדיין.</p>
@@ -913,10 +913,10 @@ export function SwiftQuestApp() {
                     className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm"
                   >
                     <p className="text-fog/90">
-                      {formatSessionDate(session.endedAtISO)} · World {session.worldId}
+                      {formatSessionDate(session.endedAtISO)} · עולם {session.worldId}
                     </p>
                     <p className="mt-1 text-fog/75">
-                      {session.correctAnswers}/{session.totalQuestions} correct · +{session.xpEarned} XP · +{session.coinsEarned} coins
+                      {session.correctAnswers}/{session.totalQuestions} נכונות · +{session.xpEarned} XP · +{session.coinsEarned} מטבעות
                     </p>
                   </div>
                 ))}
@@ -929,13 +929,13 @@ export function SwiftQuestApp() {
       {screen === "library" ? (
         <section className="card rounded-2xl p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-fog">Codex Library</h2>
+            <h2 className="text-xl font-semibold text-fog">ספריית Codex</h2>
             <button
               className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
               onClick={() => setScreen("home")}
               type="button"
             >
-              Back
+              חזרה
             </button>
           </div>
 
@@ -946,7 +946,7 @@ export function SwiftQuestApp() {
                 <p className="mt-1 text-sm text-fog/85">{topic.summary}</p>
 
                 <div className="mt-3">
-                  <p className="mb-1 text-xs uppercase tracking-wide text-amber">Common mistakes</p>
+                  <p className="mb-1 text-xs uppercase tracking-wide text-amber">טעויות נפוצות</p>
                   <ul className="space-y-1 text-sm text-fog/80">
                     {topic.commonMistakes.map((mistake) => (
                       <li key={mistake}>- {mistake}</li>
@@ -958,7 +958,7 @@ export function SwiftQuestApp() {
                   <CodeSnippet code={topic.snippet} language="swift" />
                 </div>
 
-                <p className="mt-3 text-xs text-fog/70">Related: {topic.related.join(" • ")}</p>
+                <p className="mt-3 text-xs text-fog/70">קשור לנושאים: {topic.related.join(" • ")}</p>
               </article>
             ))}
           </div>

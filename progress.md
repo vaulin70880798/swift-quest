@@ -59,3 +59,10 @@ Original prompt: "מעולה. הנה PRD מלא ומפורט למשחק שלך �
 - Validation after UI changes:
   - `npm run typecheck` passes
   - `npm run build` passes
+- Localized core UI copy to Hebrew (while preserving code terms in English where relevant).
+- Upgraded explanation modal behavior:
+  - Correct answers now show explicit success state + explanation modal remains visible.
+  - Added detailed step-by-step explanation block.
+  - Added sky-colored concept glossary panel per question.
+- Translated code snippet controls (expand/collapse/copy) to Hebrew.
+- Validation: `npm run typecheck` passes.
