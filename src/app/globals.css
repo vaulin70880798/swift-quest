@@ -43,18 +43,18 @@ code {
 }
 
 .mixed-text__en {
-  display: inline-flex;
+  display: inline;
   direction: ltr;
   unicode-bidi: isolate;
   text-align: left;
-  margin-inline: 0.16rem;
-  padding: 0.03rem 0.4rem;
-  border-radius: 0.38rem;
-  border: 1px solid rgba(99, 186, 255, 0.5);
-  background: rgba(7, 34, 59, 0.65);
-  color: #a7deff;
-  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
-  font-size: 0.9em;
+  margin-inline: 0.1rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8ccfff;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .code-token-plain {
