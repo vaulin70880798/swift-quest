@@ -434,35 +434,36 @@ export function SwiftQuestApp() {
   if (!player && screen === "welcome") {
     return (
       <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-12">
-        <section className="card w-full max-w-xl rounded-2xl p-6">
+        <section className="card w-full max-w-xl rounded-3xl p-7">
           <MixedText text="Swift Quest" as="p" className="text-xs uppercase tracking-[0.25em] text-sky" />
           <MixedText text="מסע לימוד קוד בסגנון RPG" as="h1" className="mt-2 text-3xl font-semibold text-fog" />
           <MixedText
             text="מהדורת MVP 1: עולם ראשון, קרבות קוד, ניסיון, מטבעות, מנגנון חזרה חכם והסבר מפורט אחרי כל טעות."
             as="p"
-            className="mt-3 text-sm text-fog/85"
+            className="mt-3 text-sm text-fog/80"
           />
 
-          <label className="mt-5 block text-sm text-fog/90" htmlFor="nameInput">
+          <label className="mt-6 block text-sm text-fog/90" htmlFor="nameInput">
             שם שחקן
           </label>
           <input
             id="nameInput"
             value={nameInput}
             onChange={(event) => setNameInput(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-fog outline-none transition focus:border-sky"
+            placeholder="למשל: אלוף Swift"
+            className="mt-2 w-full rounded-xl px-3 py-2.5 text-fog outline-none transition"
           />
 
           <div className="mt-6 flex flex-wrap gap-2">
             <button
-              className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+              className="btn btn-primary"
               onClick={onNewGame}
               type="button"
             >
               משחק חדש
             </button>
             <button
-              className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={onContinue}
               type="button"
               disabled
@@ -481,67 +482,69 @@ export function SwiftQuestApp() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="card mb-5 rounded-2xl p-4">
+      <header className="card mb-5 rounded-3xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-sky">בסיס הבית</p>
-            <MixedText text={player.username} as="h1" className="text-2xl font-semibold text-fog" />
+            <MixedText text={player.username} as="h1" className="text-2xl font-semibold tracking-tight text-fog" />
           </div>
           <div className="flex flex-wrap gap-2 text-sm">
-            <span className="rounded-lg border border-fog/25 px-3 py-1">רמה {player.level}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">ניסיון {player.xp}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">מטבעות {player.coins}</span>
-            <span className="rounded-lg border border-fog/25 px-3 py-1">רצף {player.streak}</span>
+            <span className="stat-pill">רמה {player.level}</span>
+            <span className="stat-pill">ניסיון {player.xp}</span>
+            <span className="stat-pill">מטבעות {player.coins}</span>
+            <span className="stat-pill">רצף {player.streak}</span>
           </div>
         </div>
       </header>
 
       {screen === "home" ? (
         <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-          <article className="card rounded-2xl p-5">
+          <article className="card rounded-3xl p-6">
             <MixedText text="מרכז הפיקוד של Swift Quest" as="h2" className="text-xl font-semibold text-fog" />
-            <p className="mt-2 text-sm text-fog/80">
-              לולאה מומלצת לסשן של 15-20 דקות: חזרה קצרה, שלב קרב, תגמול וסיכום.
-            </p>
+            <MixedText
+              text="לולאה מומלצת לסשן של 15-20 דקות: חזרה קצרה, שלב קרב, תגמול וסיכום."
+              as="p"
+              className="mt-2 text-sm text-fog/78"
+            />
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button
-                className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+                className="btn btn-primary"
                 onClick={() => setScreen("world_map")}
                 type="button"
               >
                 עולמות
               </button>
               <button
-                className="rounded-lg border border-amber/55 px-4 py-2 font-semibold text-amber hover:bg-amber/10"
+                className="btn btn-warning"
                 onClick={startReviewBattle}
                 type="button"
               >
                 <MixedText text="מצב חזרה (Review)" />
               </button>
               <button
-                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                className="btn btn-ghost"
                 onClick={() => setScreen("review")}
                 type="button"
               >
                 תור חזרה
               </button>
               <button
-                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                className="btn btn-ghost"
                 onClick={() => setScreen("stats")}
                 type="button"
               >
                 סטטיסטיקות
               </button>
               <button
-                className="rounded-lg border border-mint/55 px-4 py-2 font-semibold text-mint hover:bg-mint/10"
+                className="btn btn-success"
                 onClick={() => setScreen("library")}
                 type="button"
               >
                 <MixedText text="ספריית Codex" />
               </button>
               <button
-                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                className="btn btn-ghost"
                 onClick={claimDailyReward}
                 type="button"
               >
@@ -550,7 +553,7 @@ export function SwiftQuestApp() {
             </div>
 
             {summary ? (
-              <div className="mt-5 rounded-xl border border-sky/35 bg-sky/10 p-4">
+              <div className="surface-block-accent mt-5 p-4">
                 <p className="text-sm font-semibold text-sky">הסשן האחרון</p>
                 <p className="mt-1 text-sm text-fog">
                   {summary.correctAnswers}/{summary.totalQuestions} נכונות | ניסיון +{summary.xpEarned} | מטבעות +{summary.coinsEarned}
@@ -562,7 +565,7 @@ export function SwiftQuestApp() {
           </article>
 
           <aside className="space-y-4">
-            <div className="card rounded-2xl p-4">
+            <div className="card rounded-3xl p-5">
               <p className="text-sm font-semibold text-fog">נושאים חלשים כרגע</p>
               <ul className="mt-2 space-y-2 text-sm text-fog/90">
                 {weakTopics.length === 0 ? <li>אין מספיק נתונים עדיין.</li> : null}
@@ -575,7 +578,7 @@ export function SwiftQuestApp() {
               </ul>
             </div>
 
-            <div className="card rounded-2xl p-4">
+            <div className="card rounded-3xl p-5">
               <p className="text-sm font-semibold text-fog">תור חזרה</p>
               <p className="mt-1 text-2xl font-semibold text-sky">{player.reviewQueue.length}</p>
               <p className="mt-1 text-xs text-fog/75">שאלות שסומנו לחזרה חכמה.</p>
@@ -585,11 +588,11 @@ export function SwiftQuestApp() {
       ) : null}
 
       {screen === "world_map" ? (
-        <section className="card rounded-2xl p-5">
+        <section className="card rounded-3xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-fog">מפת העולמות</h2>
             <button
-              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={() => setScreen("home")}
               type="button"
             >
@@ -605,24 +608,24 @@ export function SwiftQuestApp() {
                   key={world.id}
                   className={`rounded-xl border p-4 ${
                     unlocked
-                      ? "border-sky/35 bg-sky/10"
-                      : "border-white/10 bg-white/5 opacity-65"
+                      ? "surface-block-accent"
+                      : "surface-block-muted opacity-65"
                   }`}
                 >
-                  <p className="text-xs uppercase tracking-widest text-fog/70">עולם {world.id}</p>
+                  <p className="text-xs uppercase tracking-widest text-fog/65">עולם {world.id}</p>
                   <MixedText text={world.name} as="h3" className="mt-1 text-lg font-semibold text-fog" />
-                  <MixedText text={world.description} as="p" className="mt-1 text-sm text-fog/80" />
+                  <MixedText text={world.description} as="p" className="mt-1 text-sm text-fog/78" />
 
                   <div className="mt-3 flex flex-wrap gap-1 text-xs text-fog/75">
                     {world.topicCoverage.slice(0, 3).map((topic) => (
-                      <span key={topic} className="rounded-full border border-white/15 px-2 py-1">
+                      <span key={topic} className="tag-pill">
                         <MixedText text={topic} />
                       </span>
                     ))}
                   </div>
 
                   <button
-                    className="mt-4 w-full rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`btn mt-4 w-full ${unlocked ? "btn-primary" : "btn-ghost"}`}
                     onClick={() => startWorldBattle(world.id)}
                     type="button"
                     disabled={!unlocked}
@@ -638,7 +641,7 @@ export function SwiftQuestApp() {
 
       {screen === "battle" && battle && currentQuestion ? (
         <section className="space-y-4">
-          <div className="card rounded-2xl p-4">
+          <div className="card rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <MixedText
                 text={`${battle.mode === "review" ? "קרב חזרה" : "קרב עולם"} | שאלה ${
@@ -648,7 +651,7 @@ export function SwiftQuestApp() {
                 className="text-fog/80"
               />
               <button
-                className="rounded-lg border border-fog/35 px-3 py-1 text-fog hover:bg-fog/10"
+                className="btn btn-ghost !min-h-[2.2rem] px-3 py-1"
                 onClick={() => {
                   setBattle(null);
                   setScreen("home");
@@ -658,18 +661,28 @@ export function SwiftQuestApp() {
                 יציאה
               </button>
             </div>
+            <div className="mt-3">
+              <div className="progress-track" aria-hidden="true">
+                <div
+                  className="progress-fill transition-all"
+                  style={{
+                    width: `${Math.round(((battle.currentIndex + 1) / battle.questions.length) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
-          <article className="card rounded-2xl p-5">
+          <article className="card rounded-3xl p-6">
             <MixedText
               text={`${currentQuestion.topic} · ${currentQuestion.difficulty}`}
               as="p"
-              className="text-xs uppercase tracking-wide text-amber"
+              className="text-xs uppercase tracking-[0.18em] text-amber"
             />
             <MixedText
               text={currentQuestion.questionText}
               as="h2"
-              className="mt-2 text-xl font-semibold text-fog"
+              className="mt-2 text-xl font-semibold leading-8 text-fog"
             />
 
             {currentQuestion.codeSnippet ? (
@@ -685,7 +698,7 @@ export function SwiftQuestApp() {
               {currentQuestion.options.map((option, index) => (
                 <button
                   key={`${currentQuestion.id}-${option}`}
-                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-3 text-right text-sm text-fog transition hover:border-sky/40 hover:bg-sky/10"
+                  className="option-button text-sm text-fog"
                   onClick={() => onPickAnswer(index)}
                   type="button"
                   disabled={Boolean(battle.pendingExplanation)}
@@ -710,22 +723,22 @@ export function SwiftQuestApp() {
       ) : null}
 
       {screen === "summary" && summary ? (
-        <section className="card rounded-2xl p-5">
+        <section className="card rounded-3xl p-6">
           <h2 className="text-2xl font-semibold text-fog">סיכום סוף סשן</h2>
           <p className="mt-2 text-sm text-fog/85">
             פתרת {summary.totalQuestions} שאלות, מתוכן {summary.correctAnswers} נכונות.
           </p>
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm">
+            <div className="surface-block-accent p-3 text-sm">
               <p className="text-fog/80">ניסיון שנצבר</p>
               <p className="text-xl font-semibold text-sky">+{summary.xpEarned}</p>
             </div>
-            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-sm">
+            <div className="surface-block-warning p-3 text-sm">
               <p className="text-fog/80">מטבעות שנצברו</p>
               <p className="text-xl font-semibold text-amber">+{summary.coinsEarned}</p>
             </div>
-            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-sm">
+            <div className="surface-block-success p-3 text-sm">
               <p className="text-fog/80">נושאים חלשים</p>
               <MixedText
                 text={summary.weakTopics.join(", ") || "אין כרגע"}
@@ -735,21 +748,21 @@ export function SwiftQuestApp() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
+          <div className="surface-block-muted mt-4 p-3">
             <p className="text-sm font-semibold text-fog">קטע קוד לזכירה</p>
             <CodeSnippet code={summary.memorySnippet} language="swift" />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+              className="btn btn-primary"
               onClick={() => setScreen("home")}
               type="button"
             >
               חזרה לבית
             </button>
             <button
-              className="rounded-lg border border-amber/40 px-4 py-2 text-amber hover:bg-amber/10"
+              className="btn btn-warning"
               onClick={startReviewBattle}
               type="button"
             >
@@ -760,11 +773,11 @@ export function SwiftQuestApp() {
       ) : null}
 
       {screen === "review" ? (
-        <section className="card rounded-2xl p-5">
+        <section className="card rounded-3xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-fog">תור חזרה</h2>
             <button
-              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={() => setScreen("home")}
               type="button"
             >
@@ -773,23 +786,23 @@ export function SwiftQuestApp() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-5">
-            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-center">
+            <div className="surface-block-warning p-3 text-center">
               <p className="text-xs text-fog/80">חזרה בקרוב</p>
               <p className="text-xl font-semibold text-amber">{reviewStateCounts.review_soon}</p>
             </div>
-            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-center">
+            <div className="surface-block-accent p-3 text-center">
               <p className="text-xs text-fog/80">בלמידה</p>
               <p className="text-xl font-semibold text-sky">{reviewStateCounts.learning}</p>
             </div>
-            <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
+            <div className="surface-block-muted p-3 text-center">
               <p className="text-xs text-fog/80">חדש</p>
               <p className="text-xl font-semibold text-fog">{reviewStateCounts.new}</p>
             </div>
-            <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
+            <div className="surface-block-muted p-3 text-center">
               <p className="text-xs text-fog/80">חזרה מאוחרת</p>
               <p className="text-xl font-semibold text-fog">{reviewStateCounts.review_later}</p>
             </div>
-            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-center">
+            <div className="surface-block-success p-3 text-center">
               <p className="text-xs text-fog/80">בשליטה</p>
               <p className="text-xl font-semibold text-mint">{reviewStateCounts.mastered}</p>
             </div>
@@ -797,7 +810,7 @@ export function SwiftQuestApp() {
 
           <div className="mt-4 flex flex-wrap gap-2">
             <button
-              className="rounded-lg bg-amber px-4 py-2 font-semibold text-night hover:brightness-110 disabled:opacity-50"
+              className="btn btn-warning"
               onClick={startReviewBattle}
               type="button"
               disabled={reviewQuestions.length === 0}
@@ -805,7 +818,7 @@ export function SwiftQuestApp() {
               התחל חזרה מהתור
             </button>
             <button
-              className="rounded-lg border border-fog/35 px-4 py-2 text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={() => setScreen("stats")}
               type="button"
             >
@@ -815,7 +828,7 @@ export function SwiftQuestApp() {
 
           <div className="mt-5 space-y-3">
             {reviewQuestions.length === 0 ? (
-              <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-fog/85">
+              <div className="surface-block-muted p-4 text-sm text-fog/85">
                 אין כרגע שאלות בתור החזרה. ענה על קרבות או לחץ \"שמור לחזרה\" מתוך חלון ההסבר.
               </div>
             ) : null}
@@ -823,7 +836,7 @@ export function SwiftQuestApp() {
             {reviewQuestions.map((question) => {
               const state = getQuestionState(player, question);
               return (
-                <article key={question.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
+                <article key={question.id} className="surface-block-muted p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <MixedText
@@ -837,21 +850,21 @@ export function SwiftQuestApp() {
                         className="mt-1 text-base font-semibold text-fog"
                       />
                     </div>
-                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-fog/85">
+                    <span className="tag-pill text-xs text-fog/85">
                       {questionStateLabel(state)}
                     </span>
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
-                      className="rounded-lg border border-sky/40 px-3 py-2 text-sm text-sky hover:bg-sky/10"
+                      className="btn btn-accent"
                       onClick={() => startFocusedReview(question.id)}
                       type="button"
                     >
                       תרגול ממוקד
                     </button>
                     <button
-                      className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+                      className="btn btn-ghost"
                       onClick={() => removeFromReviewQueue(question.id)}
                       type="button"
                     >
@@ -866,11 +879,11 @@ export function SwiftQuestApp() {
       ) : null}
 
       {screen === "stats" ? (
-        <section className="card rounded-2xl p-5">
+        <section className="card rounded-3xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-fog">לוח סטטיסטיקות</h2>
             <button
-              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={() => setScreen("home")}
               type="button"
             >
@@ -879,28 +892,28 @@ export function SwiftQuestApp() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3">
+            <div className="surface-block-accent p-3">
               <p className="text-xs text-fog/80">דיוק</p>
               <p className="text-2xl font-semibold text-sky">{statsSummary.accuracy}%</p>
             </div>
-            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3">
+            <div className="surface-block-success p-3">
               <p className="text-xs text-fog/80">נכונות / ניסיונות</p>
               <p className="text-2xl font-semibold text-mint">
                 {statsSummary.correct}/{statsSummary.attempts}
               </p>
             </div>
-            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3">
+            <div className="surface-block-warning p-3">
               <p className="text-xs text-fog/80">סשנים</p>
               <p className="text-2xl font-semibold text-amber">{player.sessionHistory.length}</p>
             </div>
-            <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+            <div className="surface-block-muted p-3">
               <p className="text-xs text-fog/80">שאלות בסשנים</p>
               <p className="text-2xl font-semibold text-fog">{statsSummary.totalSessionQuestions}</p>
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            <article className="rounded-xl border border-white/15 bg-white/5 p-4">
+            <article className="surface-block-muted p-4">
               <h3 className="text-base font-semibold text-fog">רמת שליטה לפי נושא</h3>
               <div className="mt-3 space-y-3">
                 {masteryEntries.length === 0 ? (
@@ -912,9 +925,9 @@ export function SwiftQuestApp() {
                       <MixedText text={entry.topic} />
                       <span>{entry.value}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-white/10">
+                    <div className="progress-track">
                       <div
-                        className="h-2 rounded-full bg-sky transition-all"
+                        className="progress-fill transition-all"
                         style={{ width: `${entry.value}%` }}
                       />
                     </div>
@@ -923,7 +936,7 @@ export function SwiftQuestApp() {
               </div>
             </article>
 
-            <article className="rounded-xl border border-white/15 bg-white/5 p-4">
+            <article className="surface-block-muted p-4">
               <h3 className="text-base font-semibold text-fog">סשנים אחרונים</h3>
               <div className="mt-3 space-y-2">
                 {player.sessionHistory.length === 0 ? (
@@ -932,7 +945,7 @@ export function SwiftQuestApp() {
                 {player.sessionHistory.slice(0, 6).map((session) => (
                   <div
                     key={session.id}
-                    className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm"
+                    className="surface-block p-3 text-sm"
                   >
                     <p className="text-fog/90">
                       {formatSessionDate(session.endedAtISO)} · עולם {session.worldId}
@@ -949,11 +962,11 @@ export function SwiftQuestApp() {
       ) : null}
 
       {screen === "library" ? (
-        <section className="card rounded-2xl p-5">
+        <section className="card rounded-3xl p-6">
           <div className="mb-4 flex items-center justify-between">
             <MixedText text="ספריית Codex" as="h2" className="text-xl font-semibold text-fog" />
             <button
-              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              className="btn btn-ghost"
               onClick={() => setScreen("home")}
               type="button"
             >
@@ -963,7 +976,7 @@ export function SwiftQuestApp() {
 
           <div className="space-y-4">
             {codexLibrary.map((topic) => (
-              <article key={topic.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <article key={topic.id} className="surface-block-muted p-4">
                 <MixedText text={topic.title} as="h3" className="text-lg font-semibold text-fog" />
                 <MixedText text={topic.summary} as="p" className="mt-1 text-sm text-fog/85" />
 

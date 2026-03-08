@@ -75,3 +75,17 @@ Original prompt: "מעולה. הנה PRD מלא ומפורט למשחק שלך �
 - Upgraded code presentation to syntax-highlighted rendering:
   - tokenized Swift/SwiftUI snippets with keyword/type/string/number/comment/function/attribute colors.
   - kept code blocks LTR while app remains RTL.
+- Apple-style UX refinement pass completed across core screens:
+  - Introduced consistent visual system (glass cards, pill stats, refined button variants, muted/accent/warning/success surfaces).
+  - Updated Welcome/Home/World Map/Battle/Summary/Review/Stats/Library layouts for cleaner spacing, hierarchy, and readability.
+  - Added battle progress bar for clearer session flow.
+  - Restyled explanation modal to match the new visual language while keeping rich pedagogical content.
+  - Restyled code snippet container/controls for consistency.
+- Validation:
+  - `npm run typecheck` passes.
+  - `npm run build` passes (executed outside sandbox due Turbopack process/port sandbox restriction).
+- Visual QA (develop-web-game workflow):
+  - Ran local Playwright client copy (`scripts/web_game_playwright_client_local.mjs`) against `http://localhost:3001`.
+  - Captured screenshots under `output/web-game/apple-ux-pass/`.
+  - Verified the updated welcome screen visuals (cleaner Apple-like appearance).
+  - Note: click-selector in the skill client timed out on this app despite resolving the button element; screenshot capture still succeeded.

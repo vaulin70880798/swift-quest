@@ -36,17 +36,17 @@ export function ExplanationModal({
   const conceptExplanations = buildConceptExplanations(question);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="card max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl p-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/76 p-4 backdrop-blur-sm">
+      <div className="card max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl p-6">
         <h3 className="mb-2 text-xl font-semibold text-amber">
           {isCorrect ? "תשובה נכונה, ממשיכים" : "פירוק הטעות וההיגיון הנכון"}
         </h3>
-        <MixedText text={question.questionText} as="p" className="mb-3 text-sm text-fog/90" />
+        <MixedText text={question.questionText} as="p" className="mb-3 text-sm text-fog/85" />
 
         <div
-          className={`mb-4 rounded-xl border p-3 text-sm ${
+          className={`mb-4 rounded-2xl border p-3 text-sm ${
             isCorrect
-              ? "border-mint/40 bg-mint/10 text-mint"
+              ? "surface-block-success text-mint"
               : "border-red-300/30 bg-red-400/10 text-red-200"
           }`}
         >
@@ -63,9 +63,9 @@ export function ExplanationModal({
 
         <div className="grid gap-3 md:grid-cols-2">
           <div
-            className={`rounded-xl border p-3 ${
+            className={`rounded-2xl border p-3 ${
               isCorrect
-                ? "border-mint/40 bg-mint/10"
+                ? "surface-block-success"
                 : "border-red-300/30 bg-red-400/10"
             }`}
           >
@@ -79,7 +79,7 @@ export function ExplanationModal({
             <MixedText text={selectedText} as="p" className="mt-1 text-sm text-fog" />
             <MixedText text={selectedExplanation} as="p" className="mt-2 text-sm text-fog/85" />
           </div>
-          <div className="rounded-xl border border-sky/35 bg-sky/10 p-3">
+          <div className="surface-block-accent p-3">
             <p className="text-xs uppercase tracking-wide text-sky">למה זו התשובה הנכונה</p>
             <MixedText
               text={question.options[question.correctAnswerIndex]}
@@ -90,7 +90,7 @@ export function ExplanationModal({
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-sky/35 bg-[#0c2947]/60 p-3 text-sm text-fog/95">
+        <div className="surface-block-accent mt-4 p-3 text-sm text-fog/95">
           <p className="font-semibold text-sky">הסבר מפורט צעד-אחר-צעד</p>
           <MixedText
             text={`בשאלה הזו בדקנו את הנושא ${question.topic}${
@@ -117,7 +117,7 @@ export function ExplanationModal({
           />
         </div>
 
-        <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
+        <div className="surface-block-muted mt-4 p-3">
           <p className="mb-2 text-sm font-semibold text-fog">פירוק כל האפשרויות</p>
           <ul className="space-y-1 text-sm text-fog/80">
             {question.options.map((option, index) => (
@@ -130,13 +130,13 @@ export function ExplanationModal({
           </ul>
         </div>
 
-        <div className="mt-4 rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm text-fog">
+        <div className="surface-block-accent mt-4 p-3 text-sm text-fog">
           <p className="font-semibold text-sky">כלל קצר לזכור</p>
           <MixedText text={question.hint} as="p" />
         </div>
 
         {conceptExplanations.length > 0 ? (
-          <div className="mt-4 rounded-xl border border-sky/35 bg-[#09233f]/60 p-3">
+          <div className="surface-block-accent mt-4 p-3">
             <p className="mb-2 text-sm font-semibold text-sky">מושגים חשובים (בתכלת)</p>
             <ul className="space-y-2 text-sm text-fog/90">
               {conceptExplanations.map((concept) => (
@@ -158,21 +158,21 @@ export function ExplanationModal({
 
         <div className="mt-5 flex flex-wrap gap-2">
           <button
-            className="rounded-lg bg-sky px-4 py-2 text-sm font-semibold text-night hover:brightness-110"
+            className="btn btn-primary"
             onClick={onAcknowledge}
             type="button"
           >
             המשך לשאלה הבאה
           </button>
           <button
-            className="rounded-lg border border-amber/50 px-4 py-2 text-sm text-amber hover:bg-amber/10"
+            className="btn btn-warning"
             onClick={onTrySimilar}
             type="button"
           >
             נסה שאלה דומה
           </button>
           <button
-            className="rounded-lg border border-fog/40 px-4 py-2 text-sm text-fog hover:bg-fog/10"
+            className="btn btn-ghost"
             onClick={onSaveForReview}
             type="button"
           >

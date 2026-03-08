@@ -171,19 +171,22 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
   };
 
   return (
-    <div className="rounded-xl border border-white/15 bg-black/30 p-3">
+    <div className="surface-block-muted p-3">
       <div className="mb-2 flex items-center justify-between text-xs text-fog/80">
-        <MixedText text={language === "swiftui" ? "קטע קוד SwiftUI" : "קטע קוד Swift"} />
+        <MixedText
+          text={language === "swiftui" ? "קטע קוד SwiftUI" : "קטע קוד Swift"}
+          className="font-medium"
+        />
         <div className="flex gap-2">
           <button
-            className="rounded-md border border-sky/40 px-2 py-1 text-fog hover:bg-sky/10"
+            className="btn btn-accent !min-h-[2rem] px-2 py-1 text-xs"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
             {expanded ? "צמצום" : "הרחבה"}
           </button>
           <button
-            className="rounded-md border border-amber/40 px-2 py-1 text-fog hover:bg-amber/10"
+            className="btn btn-warning !min-h-[2rem] px-2 py-1 text-xs"
             onClick={onCopy}
             type="button"
           >
@@ -193,7 +196,7 @@ export function CodeSnippet({ code, language }: CodeSnippetProps) {
       </div>
       <pre
         dir="ltr"
-        className={`overflow-x-auto rounded-lg bg-[#04101f] p-3 text-sm leading-6 ${
+        className={`overflow-x-auto rounded-xl border border-white/10 bg-[#07111d] p-3 text-sm leading-6 ${
           expanded ? "max-h-[420px]" : "max-h-[220px]"
         } overflow-y-auto`}
       >
