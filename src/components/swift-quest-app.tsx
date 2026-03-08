@@ -1,0 +1,969 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import { CodeSnippet } from "@/components/code-snippet";
+import { ExplanationModal } from "@/components/explanation-modal";
+import { worlds } from "@/lib/curriculum";
+import {
+  applyAnswer,
+  createInitialPlayer,
+  finalizeSession,
+  getBattleQuestions,
+  getReviewQuestions,
+  getWorldQuestions,
+  loadPlayer,
+  savePlayer,
+} from "@/lib/game-engine";
+import { codexLibrary } from "@/lib/library";
+import { questionBank } from "@/lib/questions";
+import { Player, Question, QuestionState, SessionSummary } from "@/lib/types";
+
+type Screen =
+  | "welcome"
+  | "home"
+  | "world_map"
+  | "battle"
+  | "summary"
+  | "review"
+  | "library"
+  | "stats";
+
+interface BattleState {
+  mode: "world" | "review";
+  worldId: number;
+  startedAtISO: string;
+  questions: Question[];
+  currentIndex: number;
+  answers: Array<{ question: Question; selectedIndex: number }>;
+  pendingExplanation?: {
+    question: Question;
+    selectedIndex: number;
+  };
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value)}%`;
+}
+
+function getWeakTopics(player: Player): Array<{ topic: string; value: number }> {
+  return Object.values(player.masteryByTopic)
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 3)
+    .map((item) => ({ topic: item.topic, value: item.value }));
+}
+
+function getQuestionState(player: Player, question: Question): QuestionState {
+  const answered = player.answeredQuestions.includes(question.id);
+  if (!answered) {
+    return "new";
+  }
+  if (player.reviewQueue.includes(question.id)) {
+    return "review_soon";
+  }
+
+  const topicMastery = player.masteryByTopic[question.topic];
+  const topicValue = topicMastery?.value ?? 0;
+
+  if (topicValue >= 80 && (topicMastery?.answered ?? 0) >= 2) {
+    return "mastered";
+  }
+  if (topicValue >= 55) {
+    return "review_later";
+  }
+  return "learning";
+}
+
+function questionStateLabel(state: QuestionState): string {
+  switch (state) {
+    case "new":
+      return "New";
+    case "learning":
+      return "Learning";
+    case "review_soon":
+      return "Review Soon";
+    case "review_later":
+      return "Review Later";
+    case "mastered":
+      return "Mastered";
+    default:
+      return "New";
+  }
+}
+
+function formatSessionDate(iso: string): string {
+  return new Date(iso).toLocaleString("he-IL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getTodayDateKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function SwiftQuestApp() {
+  const [player, setPlayer] = useState<Player | null>(null);
+  const [nameInput, setNameInput] = useState("Swift Learner");
+  const [screen, setScreen] = useState<Screen>("welcome");
+  const [battle, setBattle] = useState<BattleState | null>(null);
+  const [summary, setSummary] = useState<SessionSummary | null>(null);
+  const [dailyClaimDate, setDailyClaimDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    const existing = loadPlayer();
+    if (existing) {
+      setPlayer(existing);
+      setScreen("home");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (player) {
+      savePlayer(player);
+    }
+  }, [player]);
+
+  const currentQuestion = useMemo(() => {
+    if (!battle) {
+      return null;
+    }
+    return battle.questions[battle.currentIndex] ?? null;
+  }, [battle]);
+
+  const weakTopics = useMemo(() => {
+    if (!player) {
+      return [];
+    }
+    return getWeakTopics(player);
+  }, [player]);
+
+  const masteryEntries = useMemo(() => {
+    if (!player) {
+      return [];
+    }
+    return Object.values(player.masteryByTopic).sort((a, b) => b.value - a.value);
+  }, [player]);
+
+  const statsSummary = useMemo(() => {
+    if (!player) {
+      return {
+        attempts: 0,
+        correct: 0,
+        accuracy: 0,
+        totalSessionQuestions: 0,
+      };
+    }
+
+    const attempts = masteryEntries.reduce((sum, item) => sum + item.answered, 0);
+    const correct = masteryEntries.reduce((sum, item) => sum + item.correct, 0);
+    const totalSessionQuestions = player.sessionHistory.reduce(
+      (sum, session) => sum + session.totalQuestions,
+      0,
+    );
+
+    return {
+      attempts,
+      correct,
+      accuracy: attempts === 0 ? 0 : Math.round((correct / attempts) * 100),
+      totalSessionQuestions,
+    };
+  }, [masteryEntries, player]);
+
+  const reviewQuestions = useMemo(() => {
+    if (!player) {
+      return [];
+    }
+    return player.reviewQueue
+      .map((id) => questionBank.find((question) => question.id === id))
+      .filter((question): question is Question => Boolean(question));
+  }, [player]);
+
+  const reviewStateCounts = useMemo(() => {
+    if (!player) {
+      return {
+        new: 0,
+        learning: 0,
+        review_soon: 0,
+        review_later: 0,
+        mastered: 0,
+      };
+    }
+
+    const counts = {
+      new: 0,
+      learning: 0,
+      review_soon: 0,
+      review_later: 0,
+      mastered: 0,
+    };
+
+    for (const question of questionBank) {
+      const state = getQuestionState(player, question);
+      counts[state] += 1;
+    }
+    return counts;
+  }, [player]);
+
+  const onNewGame = () => {
+    const nextPlayer = createInitialPlayer(nameInput.trim() || "Swift Learner");
+    setPlayer(nextPlayer);
+    setSummary(null);
+    setBattle(null);
+    setScreen("home");
+  };
+
+  const onContinue = () => {
+    if (player) {
+      setScreen("home");
+    }
+  };
+
+  const startWorldBattle = (worldId: number) => {
+    const questions = getBattleQuestions(worldId, 3);
+    if (questions.length === 0) {
+      return;
+    }
+
+    setBattle({
+      mode: "world",
+      worldId,
+      startedAtISO: new Date().toISOString(),
+      questions,
+      currentIndex: 0,
+      answers: [],
+    });
+    setSummary(null);
+    setScreen("battle");
+  };
+
+  const startReviewBattle = () => {
+    if (!player) {
+      return;
+    }
+
+    const reviewQuestions = getReviewQuestions(player, 5);
+    const fallback = getBattleQuestions(1, 3);
+    const selected = reviewQuestions.length > 0 ? reviewQuestions : fallback;
+
+    if (selected.length === 0) {
+      return;
+    }
+
+    setBattle({
+      mode: "review",
+      worldId: selected[0].worldId,
+      startedAtISO: new Date().toISOString(),
+      questions: selected,
+      currentIndex: 0,
+      answers: [],
+    });
+    setSummary(null);
+    setScreen("battle");
+  };
+
+  const startFocusedReview = (questionId: string) => {
+    if (!player) {
+      return;
+    }
+
+    const target = questionBank.find((question) => question.id === questionId);
+    if (!target) {
+      return;
+    }
+
+    const neighbors = getWorldQuestions(target.worldId, false)
+      .filter((question) => question.topic === target.topic && question.id !== target.id)
+      .slice(0, 2);
+    const questions = [target, ...neighbors];
+
+    setBattle({
+      mode: "review",
+      worldId: target.worldId,
+      startedAtISO: new Date().toISOString(),
+      questions,
+      currentIndex: 0,
+      answers: [],
+    });
+    setSummary(null);
+    setScreen("battle");
+  };
+
+  const removeFromReviewQueue = (questionId: string) => {
+    setPlayer((currentPlayer) => {
+      if (!currentPlayer) {
+        return currentPlayer;
+      }
+      return {
+        ...currentPlayer,
+        reviewQueue: currentPlayer.reviewQueue.filter((id) => id !== questionId),
+      };
+    });
+  };
+
+  const onPickAnswer = (selectedIndex: number) => {
+    if (!player || !battle || !currentQuestion) {
+      return;
+    }
+
+    setPlayer((currentPlayer) => {
+      if (!currentPlayer) {
+        return currentPlayer;
+      }
+      return applyAnswer({ player: currentPlayer, question: currentQuestion, selectedIndex });
+    });
+
+    setBattle((currentBattle) => {
+      if (!currentBattle) {
+        return currentBattle;
+      }
+
+      return {
+        ...currentBattle,
+        answers: [...currentBattle.answers, { question: currentQuestion, selectedIndex }],
+        pendingExplanation: {
+          question: currentQuestion,
+          selectedIndex,
+        },
+      };
+    });
+  };
+
+  const goToNextQuestion = () => {
+    if (!battle || !player) {
+      return;
+    }
+
+    const isLast = battle.currentIndex >= battle.questions.length - 1;
+
+    if (!isLast) {
+      setBattle((currentBattle) => {
+        if (!currentBattle) {
+          return currentBattle;
+        }
+        return {
+          ...currentBattle,
+          currentIndex: currentBattle.currentIndex + 1,
+          pendingExplanation: undefined,
+        };
+      });
+      return;
+    }
+
+    const finalized = finalizeSession({
+      player,
+      worldId: battle.worldId,
+      answers: battle.answers,
+      startedAtISO: battle.startedAtISO,
+    });
+
+    setPlayer(finalized.player);
+    setSummary(finalized.summary);
+    setBattle(null);
+    setScreen("summary");
+  };
+
+  const onSaveForReview = () => {
+    if (!battle?.pendingExplanation || !player) {
+      return;
+    }
+
+    const questionId = battle.pendingExplanation.question.id;
+    setPlayer((currentPlayer) => {
+      if (!currentPlayer) {
+        return currentPlayer;
+      }
+      return {
+        ...currentPlayer,
+        reviewQueue: Array.from(new Set([questionId, ...currentPlayer.reviewQueue])),
+      };
+    });
+  };
+
+  const onTrySimilar = () => {
+    if (!battle?.pendingExplanation || !battle) {
+      return;
+    }
+
+    const topic = battle.pendingExplanation.question.topic;
+    const candidate = getWorldQuestions(battle.worldId, false).find(
+      (item) => item.topic === topic && item.id !== battle.pendingExplanation?.question.id,
+    );
+
+    if (!candidate) {
+      return;
+    }
+
+    setBattle((currentBattle) => {
+      if (!currentBattle) {
+        return currentBattle;
+      }
+
+      const updated = [...currentBattle.questions];
+      updated.splice(currentBattle.currentIndex + 1, 0, candidate);
+      return {
+        ...currentBattle,
+        questions: updated,
+      };
+    });
+  };
+
+  const claimDailyReward = () => {
+    if (!player) {
+      return;
+    }
+
+    const today = getTodayDateKey();
+    if (dailyClaimDate === today) {
+      return;
+    }
+
+    setPlayer({
+      ...player,
+      xp: player.xp + 40,
+      coins: player.coins + 25,
+      streak: player.streak + 1,
+      level: Math.max(1, Math.floor(Math.sqrt((player.xp + 40) / 120)) + 1),
+    });
+    setDailyClaimDate(today);
+  };
+
+  if (!player && screen === "welcome") {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-12">
+        <section className="card w-full max-w-xl rounded-2xl p-6">
+          <p className="text-xs uppercase tracking-[0.25em] text-sky">Swift Quest</p>
+          <h1 className="mt-2 text-3xl font-semibold text-fog">מסע לימוד קוד בסגנון RPG</h1>
+          <p className="mt-3 text-sm text-fog/85">
+            מהדורת MVP 1: עולם ראשון, קרבות קוד, XP, coins, review חכם והסבר מפורט אחרי כל טעות.
+          </p>
+
+          <label className="mt-5 block text-sm text-fog/90" htmlFor="nameInput">
+            שם שחקן
+          </label>
+          <input
+            id="nameInput"
+            value={nameInput}
+            onChange={(event) => setNameInput(event.target.value)}
+            className="mt-2 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-fog outline-none transition focus:border-sky"
+          />
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <button
+              className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+              onClick={onNewGame}
+              type="button"
+            >
+              New Game
+            </button>
+            <button
+              className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+              onClick={onContinue}
+              type="button"
+              disabled
+            >
+              Continue
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!player) {
+    return null;
+  }
+
+  return (
+    <main className="mx-auto max-w-6xl px-4 py-8">
+      <header className="card mb-5 rounded-2xl p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-sky">Home Base</p>
+            <h1 className="text-2xl font-semibold text-fog">{player.username}</h1>
+          </div>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <span className="rounded-lg border border-fog/25 px-3 py-1">Level {player.level}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">XP {player.xp}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">Coins {player.coins}</span>
+            <span className="rounded-lg border border-fog/25 px-3 py-1">Streak {player.streak}</span>
+          </div>
+        </div>
+      </header>
+
+      {screen === "home" ? (
+        <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+          <article className="card rounded-2xl p-5">
+            <h2 className="text-xl font-semibold text-fog">Swift Quest Hub</h2>
+            <p className="mt-2 text-sm text-fog/80">
+              הלולאה המומלצת לסשן 15-20 דקות: review קצר, battle stage, reward, summary.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+                onClick={() => setScreen("world_map")}
+                type="button"
+              >
+                Worlds
+              </button>
+              <button
+                className="rounded-lg border border-amber/55 px-4 py-2 font-semibold text-amber hover:bg-amber/10"
+                onClick={startReviewBattle}
+                type="button"
+              >
+                Review Mode
+              </button>
+              <button
+                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                onClick={() => setScreen("review")}
+                type="button"
+              >
+                Review Queue
+              </button>
+              <button
+                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                onClick={() => setScreen("stats")}
+                type="button"
+              >
+                Stats
+              </button>
+              <button
+                className="rounded-lg border border-mint/55 px-4 py-2 font-semibold text-mint hover:bg-mint/10"
+                onClick={() => setScreen("library")}
+                type="button"
+              >
+                Codex Library
+              </button>
+              <button
+                className="rounded-lg border border-fog/40 px-4 py-2 text-fog hover:bg-fog/10"
+                onClick={claimDailyReward}
+                type="button"
+              >
+                Daily Login Reward
+              </button>
+            </div>
+
+            {summary ? (
+              <div className="mt-5 rounded-xl border border-sky/35 bg-sky/10 p-4">
+                <p className="text-sm font-semibold text-sky">הסשן האחרון</p>
+                <p className="mt-1 text-sm text-fog">
+                  {summary.correctAnswers}/{summary.totalQuestions} נכונות | XP +{summary.xpEarned} | Coins +{summary.coinsEarned}
+                </p>
+                <p className="mt-2 text-xs text-fog/80">זכור את ה-snippet הזה:</p>
+                <CodeSnippet code={summary.memorySnippet} language="swift" />
+              </div>
+            ) : null}
+          </article>
+
+          <aside className="space-y-4">
+            <div className="card rounded-2xl p-4">
+              <p className="text-sm font-semibold text-fog">Mastery חלש כרגע</p>
+              <ul className="mt-2 space-y-2 text-sm text-fog/90">
+                {weakTopics.length === 0 ? <li>אין מספיק נתונים עדיין.</li> : null}
+                {weakTopics.map((entry) => (
+                  <li key={entry.topic} className="flex items-center justify-between">
+                    <span>{entry.topic}</span>
+                    <span className="text-amber">{formatPercent(entry.value)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="card rounded-2xl p-4">
+              <p className="text-sm font-semibold text-fog">Review Queue</p>
+              <p className="mt-1 text-2xl font-semibold text-sky">{player.reviewQueue.length}</p>
+              <p className="mt-1 text-xs text-fog/75">שאלות שסומנו לחזרה חכמה.</p>
+            </div>
+          </aside>
+        </section>
+      ) : null}
+
+      {screen === "world_map" ? (
+        <section className="card rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-fog">World Map</h2>
+            <button
+              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              onClick={() => setScreen("home")}
+              type="button"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {worlds.map((world) => {
+              const unlocked = player.unlockedWorlds.includes(world.id) || world.id === 1;
+              return (
+                <article
+                  key={world.id}
+                  className={`rounded-xl border p-4 ${
+                    unlocked
+                      ? "border-sky/35 bg-sky/10"
+                      : "border-white/10 bg-white/5 opacity-65"
+                  }`}
+                >
+                  <p className="text-xs uppercase tracking-widest text-fog/70">World {world.id}</p>
+                  <h3 className="mt-1 text-lg font-semibold text-fog">{world.name}</h3>
+                  <p className="mt-1 text-sm text-fog/80">{world.description}</p>
+
+                  <div className="mt-3 flex flex-wrap gap-1 text-xs text-fog/75">
+                    {world.topicCoverage.slice(0, 3).map((topic) => (
+                      <span key={topic} className="rounded-full border border-white/15 px-2 py-1">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+
+                  <button
+                    className="mt-4 w-full rounded-lg px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => startWorldBattle(world.id)}
+                    type="button"
+                    disabled={!unlocked}
+                  >
+                    {unlocked ? "Enter Battle" : `Unlock at level ${world.unlockRequirement.minLevel}`}
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "battle" && battle && currentQuestion ? (
+        <section className="space-y-4">
+          <div className="card rounded-2xl p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+              <p className="text-fog/80">
+                {battle.mode === "review" ? "Review Battle" : "World Battle"} | Question {battle.currentIndex + 1}/
+                {battle.questions.length}
+              </p>
+              <button
+                className="rounded-lg border border-fog/35 px-3 py-1 text-fog hover:bg-fog/10"
+                onClick={() => {
+                  setBattle(null);
+                  setScreen("home");
+                }}
+                type="button"
+              >
+                Exit
+              </button>
+            </div>
+          </div>
+
+          <article className="card rounded-2xl p-5">
+            <p className="text-xs uppercase tracking-wide text-amber">
+              {currentQuestion.topic} · {currentQuestion.difficulty}
+            </p>
+            <h2 className="mt-2 text-xl font-semibold text-fog">{currentQuestion.questionText}</h2>
+
+            {currentQuestion.codeSnippet ? (
+              <div className="mt-4">
+                <CodeSnippet
+                  code={currentQuestion.codeSnippet}
+                  language={currentQuestion.codeLanguage}
+                />
+              </div>
+            ) : null}
+
+            <div className="mt-4 grid gap-2">
+              {currentQuestion.options.map((option, index) => (
+                <button
+                  key={`${currentQuestion.id}-${option}`}
+                  className="rounded-lg border border-white/15 bg-white/5 px-3 py-3 text-left text-sm text-fog transition hover:border-sky/40 hover:bg-sky/10"
+                  onClick={() => onPickAnswer(index)}
+                  type="button"
+                  disabled={Boolean(battle.pendingExplanation)}
+                >
+                  {index + 1}. {option}
+                </button>
+              ))}
+            </div>
+          </article>
+
+          {battle.pendingExplanation ? (
+            <ExplanationModal
+              open={Boolean(battle.pendingExplanation)}
+              question={battle.pendingExplanation.question}
+              selectedIndex={battle.pendingExplanation.selectedIndex}
+              onAcknowledge={goToNextQuestion}
+              onSaveForReview={onSaveForReview}
+              onTrySimilar={onTrySimilar}
+            />
+          ) : null}
+        </section>
+      ) : null}
+
+      {screen === "summary" && summary ? (
+        <section className="card rounded-2xl p-5">
+          <h2 className="text-2xl font-semibold text-fog">End of Session Summary</h2>
+          <p className="mt-2 text-sm text-fog/85">
+            פתרת {summary.totalQuestions} שאלות, מתוכן {summary.correctAnswers} נכונות.
+          </p>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-sm">
+              <p className="text-fog/80">XP Earned</p>
+              <p className="text-xl font-semibold text-sky">+{summary.xpEarned}</p>
+            </div>
+            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-sm">
+              <p className="text-fog/80">Coins Earned</p>
+              <p className="text-xl font-semibold text-amber">+{summary.coinsEarned}</p>
+            </div>
+            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-sm">
+              <p className="text-fog/80">Weak Topics</p>
+              <p className="text-sm text-fog">{summary.weakTopics.join(", ") || "אין כרגע"}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/15 bg-white/5 p-3">
+            <p className="text-sm font-semibold text-fog">Snippet לזכירה</p>
+            <CodeSnippet code={summary.memorySnippet} language="swift" />
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-lg bg-sky px-4 py-2 font-semibold text-night hover:brightness-110"
+              onClick={() => setScreen("home")}
+              type="button"
+            >
+              Back to Home
+            </button>
+            <button
+              className="rounded-lg border border-amber/40 px-4 py-2 text-amber hover:bg-amber/10"
+              onClick={startReviewBattle}
+              type="button"
+            >
+              Start Review
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "review" ? (
+        <section className="card rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-fog">Review Queue</h2>
+            <button
+              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              onClick={() => setScreen("home")}
+              type="button"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-5">
+            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3 text-center">
+              <p className="text-xs text-fog/80">Review Soon</p>
+              <p className="text-xl font-semibold text-amber">{reviewStateCounts.review_soon}</p>
+            </div>
+            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3 text-center">
+              <p className="text-xs text-fog/80">Learning</p>
+              <p className="text-xl font-semibold text-sky">{reviewStateCounts.learning}</p>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
+              <p className="text-xs text-fog/80">New</p>
+              <p className="text-xl font-semibold text-fog">{reviewStateCounts.new}</p>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/5 p-3 text-center">
+              <p className="text-xs text-fog/80">Review Later</p>
+              <p className="text-xl font-semibold text-fog">{reviewStateCounts.review_later}</p>
+            </div>
+            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3 text-center">
+              <p className="text-xs text-fog/80">Mastered</p>
+              <p className="text-xl font-semibold text-mint">{reviewStateCounts.mastered}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="rounded-lg bg-amber px-4 py-2 font-semibold text-night hover:brightness-110 disabled:opacity-50"
+              onClick={startReviewBattle}
+              type="button"
+              disabled={reviewQuestions.length === 0}
+            >
+              Start Queue Review
+            </button>
+            <button
+              className="rounded-lg border border-fog/35 px-4 py-2 text-fog hover:bg-fog/10"
+              onClick={() => setScreen("stats")}
+              type="button"
+            >
+              Open Stats
+            </button>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {reviewQuestions.length === 0 ? (
+              <div className="rounded-xl border border-white/15 bg-white/5 p-4 text-sm text-fog/85">
+                אין כרגע שאלות בתור החזרה. ענה על battles או לחץ \"שמור לחזרה\" מתוך modal.
+              </div>
+            ) : null}
+
+            {reviewQuestions.map((question) => {
+              const state = getQuestionState(player, question);
+              return (
+                <article key={question.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-amber">
+                        {question.topic} · {question.difficulty}
+                      </p>
+                      <h3 className="mt-1 text-base font-semibold text-fog">{question.questionText}</h3>
+                    </div>
+                    <span className="rounded-full border border-white/20 px-3 py-1 text-xs text-fog/85">
+                      {questionStateLabel(state)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      className="rounded-lg border border-sky/40 px-3 py-2 text-sm text-sky hover:bg-sky/10"
+                      onClick={() => startFocusedReview(question.id)}
+                      type="button"
+                    >
+                      Focused Drill
+                    </button>
+                    <button
+                      className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+                      onClick={() => removeFromReviewQueue(question.id)}
+                      type="button"
+                    >
+                      Remove From Queue
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "stats" ? (
+        <section className="card rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-fog">Stats Dashboard</h2>
+            <button
+              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              onClick={() => setScreen("home")}
+              type="button"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="rounded-xl border border-sky/30 bg-sky/10 p-3">
+              <p className="text-xs text-fog/80">Accuracy</p>
+              <p className="text-2xl font-semibold text-sky">{statsSummary.accuracy}%</p>
+            </div>
+            <div className="rounded-xl border border-mint/30 bg-mint/10 p-3">
+              <p className="text-xs text-fog/80">Correct / Attempts</p>
+              <p className="text-2xl font-semibold text-mint">
+                {statsSummary.correct}/{statsSummary.attempts}
+              </p>
+            </div>
+            <div className="rounded-xl border border-amber/30 bg-amber/10 p-3">
+              <p className="text-xs text-fog/80">Sessions</p>
+              <p className="text-2xl font-semibold text-amber">{player.sessionHistory.length}</p>
+            </div>
+            <div className="rounded-xl border border-white/20 bg-white/5 p-3">
+              <p className="text-xs text-fog/80">Questions In Sessions</p>
+              <p className="text-2xl font-semibold text-fog">{statsSummary.totalSessionQuestions}</p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <article className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <h3 className="text-base font-semibold text-fog">Mastery By Topic</h3>
+              <div className="mt-3 space-y-3">
+                {masteryEntries.length === 0 ? (
+                  <p className="text-sm text-fog/80">אין מספיק נתונים עדיין.</p>
+                ) : null}
+                {masteryEntries.map((entry) => (
+                  <div key={entry.topic}>
+                    <div className="mb-1 flex items-center justify-between text-sm text-fog/90">
+                      <span>{entry.topic}</span>
+                      <span>{entry.value}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-white/10">
+                      <div
+                        className="h-2 rounded-full bg-sky transition-all"
+                        style={{ width: `${entry.value}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="rounded-xl border border-white/15 bg-white/5 p-4">
+              <h3 className="text-base font-semibold text-fog">Recent Sessions</h3>
+              <div className="mt-3 space-y-2">
+                {player.sessionHistory.length === 0 ? (
+                  <p className="text-sm text-fog/80">אין סשנים קודמים עדיין.</p>
+                ) : null}
+                {player.sessionHistory.slice(0, 6).map((session) => (
+                  <div
+                    key={session.id}
+                    className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm"
+                  >
+                    <p className="text-fog/90">
+                      {formatSessionDate(session.endedAtISO)} · World {session.worldId}
+                    </p>
+                    <p className="mt-1 text-fog/75">
+                      {session.correctAnswers}/{session.totalQuestions} correct · +{session.xpEarned} XP · +{session.coinsEarned} coins
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "library" ? (
+        <section className="card rounded-2xl p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-fog">Codex Library</h2>
+            <button
+              className="rounded-lg border border-fog/35 px-3 py-2 text-sm text-fog hover:bg-fog/10"
+              onClick={() => setScreen("home")}
+              type="button"
+            >
+              Back
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {codexLibrary.map((topic) => (
+              <article key={topic.id} className="rounded-xl border border-white/15 bg-white/5 p-4">
+                <h3 className="text-lg font-semibold text-fog">{topic.title}</h3>
+                <p className="mt-1 text-sm text-fog/85">{topic.summary}</p>
+
+                <div className="mt-3">
+                  <p className="mb-1 text-xs uppercase tracking-wide text-amber">Common mistakes</p>
+                  <ul className="space-y-1 text-sm text-fog/80">
+                    {topic.commonMistakes.map((mistake) => (
+                      <li key={mistake}>- {mistake}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-3">
+                  <CodeSnippet code={topic.snippet} language="swift" />
+                </div>
+
+                <p className="mt-3 text-xs text-fog/70">Related: {topic.related.join(" • ")}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </main>
+  );
+}
