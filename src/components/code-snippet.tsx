@@ -9,6 +9,11 @@ interface CodeSnippetProps {
   language: "swift" | "swiftui";
 }
 
+interface InlineCodeSnippetProps {
+  code: string;
+  className?: string;
+}
+
 type TokenClass =
   | "code-token-plain"
   | "code-token-keyword"
@@ -150,15 +155,43 @@ function highlightLine(line: string): HighlightToken[] {
   return tokens;
 }
 
+export function highlightSwiftCode(code: string): HighlightToken[][] {
+  const normalized = code.trim();
+  if (!normalized) {
+    return [[{ text: " ", className: "code-token-plain" }]];
+  }
+  return normalized.split("\n").map((line) => highlightLine(line));
+}
+
+export function InlineCodeSnippet({ code, className }: InlineCodeSnippetProps) {
+  const highlightedLines = useMemo(() => highlightSwiftCode(code), [code]);
+
+  return (
+    <pre
+      dir="ltr"
+      className={`inline-code-snippet overflow-x-auto text-sm leading-6 ${className ?? ""}`.trim()}
+    >
+      <code dir="ltr" className="block text-left">
+        {highlightedLines.map((line, lineIndex) => (
+          <span key={`line-${lineIndex}`} className="block whitespace-pre">
+            {line.map((token, tokenIndex) => (
+              <span key={`line-${lineIndex}-token-${tokenIndex}`} className={token.className}>
+                {token.text}
+              </span>
+            ))}
+          </span>
+        ))}
+      </code>
+    </pre>
+  );
+}
+
 export function CodeSnippet({ code, language }: CodeSnippetProps) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const normalized = useMemo(() => code.trim(), [code]);
-  const highlightedLines = useMemo(
-    () => normalized.split("\n").map((line) => highlightLine(line)),
-    [normalized],
-  );
+  const highlightedLines = useMemo(() => highlightSwiftCode(normalized), [normalized]);
 
   const onCopy = async () => {
     try {

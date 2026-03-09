@@ -1,8 +1,10 @@
 "use client";
 
-import { CodeSnippet } from "@/components/code-snippet";
+import { CodeSnippet, InlineCodeSnippet } from "@/components/code-snippet";
 import { MixedText } from "@/components/mixed-text";
+import { shouldRenderOptionAsCode } from "@/lib/code-option";
 import { buildConceptExplanations } from "@/lib/concept-glossary";
+import { buildExplanationDeepDive } from "@/lib/explanation-deep-dive";
 import { Question } from "@/lib/types";
 
 interface ExplanationModalProps {
@@ -34,6 +36,10 @@ export function ExplanationModal({
       ? "זו בחירה נכונה כי היא תואמת את חוקי Swift ואת הלוגיקה של הקוד המוצג."
       : "זו בחירה שלא תואמת את התוצאה הנכונה של הקוד.");
   const conceptExplanations = buildConceptExplanations(question);
+  const deepDive = buildExplanationDeepDive(question);
+  const selectedIsCode = shouldRenderOptionAsCode(selectedText, question.format);
+  const correctOptionText = question.options[question.correctAnswerIndex] ?? "";
+  const correctIsCode = shouldRenderOptionAsCode(correctOptionText, question.format);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/76 p-4 backdrop-blur-sm">
@@ -76,18 +82,33 @@ export function ExplanationModal({
             >
               {isCorrect ? "הבחירה שלך (נכונה)" : "הבחירה שלך"}
             </p>
-            <MixedText text={selectedText} as="p" className="mt-1 text-sm text-fog" />
+            {selectedIsCode ? (
+              <InlineCodeSnippet code={selectedText} className="mt-2" />
+            ) : (
+              <MixedText text={selectedText} as="p" className="mt-1 text-sm text-fog" />
+            )}
             <MixedText text={selectedExplanation} as="p" className="mt-2 text-sm text-fog/85" />
           </div>
           <div className="surface-block-accent p-3">
             <p className="text-xs uppercase tracking-wide text-sky">למה זו התשובה הנכונה</p>
-            <MixedText
-              text={question.options[question.correctAnswerIndex]}
-              as="p"
-              className="mt-1 text-sm text-fog"
-            />
+            {correctIsCode ? (
+              <InlineCodeSnippet code={correctOptionText} className="mt-2" />
+            ) : (
+              <MixedText
+                text={correctOptionText}
+                as="p"
+                className="mt-1 text-sm text-fog"
+              />
+            )}
             <MixedText text={question.explanation} as="p" className="mt-2 text-sm text-fog/90" />
           </div>
+        </div>
+
+        <div className="surface-block-accent mt-4 p-3 text-sm text-fog/95">
+          <p className="font-semibold text-sky">מה באמת נבדק כאן (המושג)</p>
+          <MixedText text={`המושג המרכזי: ${deepDive.concept}`} as="p" className="mt-2 font-semibold text-fog" />
+          <MixedText text={deepDive.questionFocus} as="p" className="mt-1" />
+          <MixedText text={deepDive.conceptExplanation} as="p" className="mt-2" />
         </div>
 
         <div className="surface-block-accent mt-4 p-3 text-sm text-fog/95">
@@ -118,13 +139,40 @@ export function ExplanationModal({
         </div>
 
         <div className="surface-block-muted mt-4 p-3">
+          <p className="mb-2 text-sm font-semibold text-fog">עוד 2 דוגמאות לקוד עם הסבר</p>
+          <div className="space-y-3">
+            {deepDive.examples.map((example, index) => (
+              <div key={`${example.title}-${index}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber">
+                  דוגמה {index + 1}: {example.title}
+                </p>
+                <InlineCodeSnippet code={example.code} className="mt-2" />
+                <MixedText text={example.explanation} as="p" className="mt-2 text-sm text-fog/85" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="surface-block-muted mt-4 p-3">
           <p className="mb-2 text-sm font-semibold text-fog">פירוק כל האפשרויות</p>
           <ul className="space-y-1 text-sm text-fog/80">
             {question.options.map((option, index) => (
               <li key={option + index}>
-                <MixedText
-                  text={`${index + 1}. ${option} - ${question.wrongOptionExplanations[index]}`}
-                />
+                {shouldRenderOptionAsCode(option, question.format) ? (
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                    <p className="mb-1 text-xs text-fog/75">{index + 1}.</p>
+                    <InlineCodeSnippet code={option} />
+                    <MixedText
+                      text={question.wrongOptionExplanations[index] ?? ""}
+                      as="p"
+                      className="mt-2 text-sm text-fog/85"
+                    />
+                  </div>
+                ) : (
+                  <MixedText
+                    text={`${index + 1}. ${option} - ${question.wrongOptionExplanations[index]}`}
+                  />
+                )}
               </li>
             ))}
           </ul>

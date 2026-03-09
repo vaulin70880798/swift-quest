@@ -89,3 +89,20 @@ Original prompt: "מעולה. הנה PRD מלא ומפורט למשחק שלך �
   - Captured screenshots under `output/web-game/apple-ux-pass/`.
   - Verified the updated welcome screen visuals (cleaner Apple-like appearance).
   - Note: click-selector in the skill client timed out on this app despite resolving the button element; screenshot capture still succeeded.
+- Added code-option rendering system:
+  - New `src/lib/code-option.ts` with option classification heuristics.
+  - New `InlineCodeSnippet` component in `src/components/code-snippet.tsx` (syntax-highlighted compact code box).
+  - Battle answer options now render code options in inline code boxes with syntax colors.
+- Expanded explanation modal pedagogy:
+  - New `src/lib/explanation-deep-dive.ts` to generate concept-focused explanation blocks.
+  - Modal now includes:
+    - "מה באמת נבדק כאן (המושג)"
+    - "עוד 2 דוגמאות לקוד עם הסבר" with 2 code snippets + explanations
+  - Selected/correct options and option breakdown now render code-style boxes when relevant.
+- Refined code-option detection to avoid false positives on Hebrew prose that mentions English terms.
+- Validation:
+  - `npm run typecheck` passes.
+  - UI browser checks run (Playwright, escalated):
+    - `output/web-game/code-option-deep-dive-v2/battle-code-options.png`
+    - `output/web-game/code-option-deep-dive-v2/modal-deep-dive.png`
+    - `checks.json` confirms code boxes + deep-dive sections are present.

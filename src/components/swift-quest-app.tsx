@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { CodeSnippet } from "@/components/code-snippet";
+import { CodeSnippet, InlineCodeSnippet } from "@/components/code-snippet";
 import { ExplanationModal } from "@/components/explanation-modal";
 import { MixedText } from "@/components/mixed-text";
+import { shouldRenderOptionAsCode } from "@/lib/code-option";
 import { worlds } from "@/lib/curriculum";
 import {
   applyAnswer,
@@ -703,7 +704,14 @@ export function SwiftQuestApp() {
                   type="button"
                   disabled={Boolean(battle.pendingExplanation)}
                 >
-                  <MixedText text={`${index + 1}. ${option}`} />
+                  {shouldRenderOptionAsCode(option, currentQuestion.format) ? (
+                    <div className="space-y-1">
+                      <span className="block text-xs font-semibold text-fog/70">{index + 1}.</span>
+                      <InlineCodeSnippet code={option} />
+                    </div>
+                  ) : (
+                    <MixedText text={`${index + 1}. ${option}`} />
+                  )}
                 </button>
               ))}
             </div>
