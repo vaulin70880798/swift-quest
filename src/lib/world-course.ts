@@ -452,5 +452,11 @@ export function isWorldUnlockedByCourse(player: Player, worldId: number): boolea
   if (worldId === 1) {
     return true;
   }
+  if (hasPassedWorldExam(player, worldId)) {
+    return true;
+  }
+  if (player.unlockedWorlds.includes(worldId)) {
+    return true;
+  }
   return hasPassedWorldExam(player, worldId - 1);
 }

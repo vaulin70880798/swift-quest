@@ -53,6 +53,7 @@ interface BattleState {
   mode: "lesson" | "exam" | "review";
   worldId: number;
   lessonId?: string;
+  examVariant?: "standard" | "luck";
   allowedMistakes?: number;
   startedAtISO: string;
   questions: Question[];
@@ -62,6 +63,12 @@ interface BattleState {
     question: Question;
     selectedIndex: number;
   };
+}
+
+interface ExamStartOptions {
+  allowWithoutLessons?: boolean;
+  allowLocked?: boolean;
+  examVariant?: "standard" | "luck";
 }
 
 function formatPercent(value: number): string {
@@ -363,12 +370,20 @@ export function SwiftQuestApp() {
     setScreen("battle");
   };
 
-  const startWorldExam = (worldId: number) => {
+  const startWorldExam = (worldId: number, options: ExamStartOptions = {}) => {
     const plan = getWorldCoursePlan(worldId);
     if (!plan || !player) {
       return;
     }
-    if (!areAllWorldLessonsPassed(player, worldId)) {
+    const unlocked = isWorldUnlockedByCourse(player, worldId);
+    const allowLocked = Boolean(options.allowLocked);
+    const allowWithoutLessons = Boolean(options.allowWithoutLessons);
+
+    if (!allowLocked && !unlocked) {
+      return;
+    }
+
+    if (!allowWithoutLessons && !areAllWorldLessonsPassed(player, worldId)) {
       return;
     }
 
@@ -380,6 +395,7 @@ export function SwiftQuestApp() {
     setBattle({
       mode: "exam",
       worldId,
+      examVariant: options.examVariant ?? "standard",
       allowedMistakes: plan.exam.maxMistakes,
       startedAtISO: new Date().toISOString(),
       questions,
@@ -543,7 +559,10 @@ export function SwiftQuestApp() {
       maxMistakesAllowed = allowed;
       passed = isPassed;
       sessionType = "world_exam";
-      sessionLabel = `מבחן עולם ${battle.worldId}`;
+      sessionLabel =
+        battle.examVariant === "luck"
+          ? `נסה את מזלך - בוס עולם ${battle.worldId}`
+          : `מבחן עולם ${battle.worldId}`;
 
       updatedPlayer = upsertWorldExamProgress(
         updatedPlayer,
@@ -556,12 +575,14 @@ export function SwiftQuestApp() {
       if (isPassed) {
         const maxWorldId = worlds[worlds.length - 1]?.id ?? battle.worldId;
         const nextWorldId = Math.min(maxWorldId, battle.worldId + 1);
-        if (nextWorldId > battle.worldId) {
-          updatedPlayer = {
-            ...updatedPlayer,
-            unlockedWorlds: Array.from(new Set([...updatedPlayer.unlockedWorlds, nextWorldId])),
-          };
-        }
+        const toUnlock =
+          nextWorldId > battle.worldId
+            ? [battle.worldId, nextWorldId]
+            : [battle.worldId];
+        updatedPlayer = {
+          ...updatedPlayer,
+          unlockedWorlds: Array.from(new Set([...updatedPlayer.unlockedWorlds, ...toUnlock])),
+        };
       }
     }
 
@@ -869,6 +890,22 @@ export function SwiftQuestApp() {
                           ? "תוכנית לימוד זמינה (תוכן בבנייה)"
                           : "תוכן קורס בבנייה"}
                   </button>
+
+                  {!unlocked && hasPlan ? (
+                    <button
+                      className="btn btn-warning mt-2 w-full"
+                      onClick={() =>
+                        startWorldExam(world.id, {
+                          allowLocked: true,
+                          allowWithoutLessons: true,
+                          examVariant: "luck",
+                        })
+                      }
+                      type="button"
+                    >
+                      נסה את מזלך
+                    </button>
+                  ) : null}
                 </article>
               );
             })}
@@ -1126,7 +1163,9 @@ export function SwiftQuestApp() {
               <MixedText
                 text={
                   battle.mode === "exam"
-                    ? "מבחן עולם"
+                    ? battle.examVariant === "luck"
+                      ? "נסה את מזלך - בוס עולם"
+                      : "מבחן עולם"
                     : battle.mode === "lesson"
                       ? "שיעור מושג"
                       : "קרב חזרה"
