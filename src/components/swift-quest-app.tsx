@@ -496,6 +496,7 @@ export function SwiftQuestApp() {
             <span className="stat-pill">רצף {player.streak}</span>
           </div>
         </div>
+        <div className="hero-header-top-bubble" aria-hidden="true" />
         <div className="hero-header-bubble" aria-hidden="true" />
       </header>
 
