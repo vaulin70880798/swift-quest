@@ -5,6 +5,7 @@ import { MixedText } from "@/components/mixed-text";
 import { shouldRenderOptionAsCode } from "@/lib/code-option";
 import { buildConceptExplanations } from "@/lib/concept-glossary";
 import { buildExplanationDeepDive } from "@/lib/explanation-deep-dive";
+import { buildLogicCoachGuide } from "@/lib/logic-coach";
 import { Question } from "@/lib/types";
 
 interface ExplanationModalProps {
@@ -37,6 +38,7 @@ export function ExplanationModal({
       : "זו בחירה שלא תואמת את התוצאה הנכונה של הקוד.");
   const conceptExplanations = buildConceptExplanations(question);
   const deepDive = buildExplanationDeepDive(question);
+  const logicGuide = buildLogicCoachGuide(question);
   const selectedIsCode = shouldRenderOptionAsCode(selectedText, question.format);
   const correctOptionText = question.options[question.correctAnswerIndex] ?? "";
   const correctIsCode = shouldRenderOptionAsCode(correctOptionText, question.format);
@@ -53,7 +55,7 @@ export function ExplanationModal({
           className={`mb-4 rounded-2xl border p-3 text-sm ${
             isCorrect
               ? "surface-block-success text-mint"
-              : "surface-block-danger text-[#ffe6e9]"
+              : "surface-block-danger text-[#8f2430]"
           }`}
         >
           {isCorrect
@@ -77,7 +79,7 @@ export function ExplanationModal({
           >
             <p
               className={`text-xs uppercase tracking-wide ${
-                isCorrect ? "text-mint" : "text-[#ffcfd4]"
+                isCorrect ? "text-mint" : "text-[#8f2430]"
               }`}
             >
               {isCorrect ? "הבחירה שלך (נכונה)" : "הבחירה שלך"}
@@ -136,6 +138,23 @@ export function ExplanationModal({
             as="p"
             className="mt-2"
           />
+        </div>
+
+        <div className="surface-block-accent mt-4 p-3 text-sm text-fog/95">
+          <p className="font-semibold text-sky">תבנית חשיבה לוגית לשאלות מהסוג הזה</p>
+          <p className="mt-1 font-semibold text-fog">
+            <MixedText text={logicGuide.title} />
+          </p>
+          <ol className="mt-2 space-y-1">
+            {logicGuide.steps.map((step, index) => (
+              <li key={step}>
+                <MixedText text={`${index + 1}. ${step}`} />
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-xs text-fog/80">
+            <MixedText text={`בדיקה מהירה: ${logicGuide.quickCheck}`} />
+          </p>
         </div>
 
         <div className="surface-block-muted mt-4 p-3">

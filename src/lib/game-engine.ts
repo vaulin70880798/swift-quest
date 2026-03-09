@@ -1,5 +1,12 @@
 import { questionBank } from "@/lib/questions";
-import { Player, Question, SessionSummary, TopicMastery } from "@/lib/types";
+import {
+  LessonProgressEntry,
+  Player,
+  Question,
+  SessionSummary,
+  TopicMastery,
+  WorldExamProgressEntry,
+} from "@/lib/types";
 
 const PLAYER_STORAGE_KEY = "swift-quest-player-v1";
 
@@ -44,6 +51,8 @@ export function createInitialPlayer(username: string): Player {
     },
     achievements: [],
     sessionHistory: [],
+    lessonProgress: {},
+    worldExamProgress: {},
   };
 }
 
@@ -65,7 +74,35 @@ export function loadPlayer(): Player | null {
   }
 
   try {
-    return JSON.parse(raw) as Player;
+    const parsed = JSON.parse(raw) as Partial<Player>;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    const fallback = createInitialPlayer(
+      typeof parsed.username === "string" ? parsed.username : "לומד",
+    );
+
+    return {
+      ...fallback,
+      ...parsed,
+      unlockedWorlds:
+        Array.isArray(parsed.unlockedWorlds) && parsed.unlockedWorlds.length > 0
+          ? parsed.unlockedWorlds
+          : fallback.unlockedWorlds,
+      unlockedStages:
+        Array.isArray(parsed.unlockedStages) && parsed.unlockedStages.length > 0
+          ? parsed.unlockedStages
+          : fallback.unlockedStages,
+      answeredQuestions: Array.isArray(parsed.answeredQuestions) ? parsed.answeredQuestions : [],
+      wrongAnswers: Array.isArray(parsed.wrongAnswers) ? parsed.wrongAnswers : [],
+      reviewQueue: Array.isArray(parsed.reviewQueue) ? parsed.reviewQueue : [],
+      sessionHistory: Array.isArray(parsed.sessionHistory) ? parsed.sessionHistory : [],
+      masteryByTopic: parsed.masteryByTopic ?? {},
+      inventory: parsed.inventory ?? fallback.inventory,
+      lessonProgress: parsed.lessonProgress ?? {},
+      worldExamProgress: parsed.worldExamProgress ?? {},
+    };
   } catch {
     return null;
   }
@@ -149,6 +186,14 @@ interface FinalizeSessionPayload {
   worldId: number;
   answers: Array<{ question: Question; selectedIndex: number }>;
   startedAtISO: string;
+  sessionMeta?: {
+    sessionType?: SessionSummary["sessionType"];
+    sessionLabel?: string;
+    passed?: boolean;
+    mistakesMade?: number;
+    maxMistakesAllowed?: number;
+    requiredCorrect?: number;
+  };
 }
 
 export function finalizeSession({
@@ -156,6 +201,7 @@ export function finalizeSession({
   worldId,
   answers,
   startedAtISO,
+  sessionMeta,
 }: FinalizeSessionPayload): { player: Player; summary: SessionSummary } {
   const totalQuestions = answers.length;
   const correctAnswers = answers.filter(
@@ -199,18 +245,17 @@ export function finalizeSession({
     improvedTopics,
     weakTopics,
     memorySnippet,
+    ...sessionMeta,
   };
 
   const updatedXp = player.xp + xpEarned;
   const level = calcLevel(updatedXp);
-  const unlockedWorlds = level > 1 ? Array.from(new Set([...player.unlockedWorlds, Math.min(level, 12)])) : player.unlockedWorlds;
 
   const updatedPlayer: Player = {
     ...player,
     xp: updatedXp,
     coins: player.coins + coinsEarned,
     level,
-    unlockedWorlds,
     sessionHistory: [sessionSummary, ...player.sessionHistory].slice(0, 25),
   };
 
@@ -222,4 +267,57 @@ export function finalizeSession({
 
 export function getQuestionById(questionId: string): Question | undefined {
   return questionBank.find((question) => question.id === questionId);
+}
+
+export function upsertLessonProgress(
+  player: Player,
+  lessonId: string,
+  correctAnswers: number,
+  passed: boolean,
+): Player {
+  const previous: LessonProgressEntry = player.lessonProgress[lessonId] ?? {
+    attempts: 0,
+    bestCorrect: 0,
+    passed: false,
+  };
+
+  return {
+    ...player,
+    lessonProgress: {
+      ...player.lessonProgress,
+      [lessonId]: {
+        attempts: previous.attempts + 1,
+        bestCorrect: Math.max(previous.bestCorrect, correctAnswers),
+        passed: previous.passed || passed,
+      },
+    },
+  };
+}
+
+export function upsertWorldExamProgress(
+  player: Player,
+  worldId: number,
+  correctAnswers: number,
+  mistakes: number,
+  passed: boolean,
+): Player {
+  const previous: WorldExamProgressEntry = player.worldExamProgress[worldId] ?? {
+    attempts: 0,
+    bestCorrect: 0,
+    bestMistakes: Number.POSITIVE_INFINITY,
+    passed: false,
+  };
+
+  return {
+    ...player,
+    worldExamProgress: {
+      ...player.worldExamProgress,
+      [worldId]: {
+        attempts: previous.attempts + 1,
+        bestCorrect: Math.max(previous.bestCorrect, correctAnswers),
+        bestMistakes: Math.min(previous.bestMistakes, mistakes),
+        passed: previous.passed || passed,
+      },
+    },
+  };
 }

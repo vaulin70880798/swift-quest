@@ -6,6 +6,7 @@ import { CodeSnippet, InlineCodeSnippet } from "@/components/code-snippet";
 import { ExplanationModal } from "@/components/explanation-modal";
 import { MixedText } from "@/components/mixed-text";
 import { shouldRenderOptionAsCode } from "@/lib/code-option";
+import { getWorldCourseBlueprint } from "@/lib/course-blueprint";
 import { worlds } from "@/lib/curriculum";
 import {
   applyAnswer,
@@ -16,15 +17,32 @@ import {
   getWorldQuestions,
   loadPlayer,
   savePlayer,
+  upsertLessonProgress,
+  upsertWorldExamProgress,
 } from "@/lib/game-engine";
 import { codexLibrary } from "@/lib/library";
+import { buildLogicCoachGuide } from "@/lib/logic-coach";
 import { questionBank } from "@/lib/questions";
+import {
+  areAllWorldLessonsPassed,
+  getLessonPassRequiredCorrect,
+  getLessonQuestions,
+  getWorldCoursePlan,
+  getWorldExamQuestions,
+  getWorldLessonById,
+  getWorldLessons,
+  hasPassedWorldExam,
+  isLessonUnlocked,
+  isWorldUnlockedByCourse,
+} from "@/lib/world-course";
 import { Player, Question, QuestionState, SessionSummary } from "@/lib/types";
 
 type Screen =
   | "welcome"
   | "home"
   | "world_map"
+  | "world_course"
+  | "lesson_intro"
   | "battle"
   | "summary"
   | "review"
@@ -32,8 +50,10 @@ type Screen =
   | "stats";
 
 interface BattleState {
-  mode: "world" | "review";
+  mode: "lesson" | "exam" | "review";
   worldId: number;
+  lessonId?: string;
+  allowedMistakes?: number;
   startedAtISO: string;
   questions: Question[];
   currentIndex: number;
@@ -110,6 +130,8 @@ export function SwiftQuestApp() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [nameInput, setNameInput] = useState("לומד");
   const [screen, setScreen] = useState<Screen>("welcome");
+  const [selectedWorldId, setSelectedWorldId] = useState<number | null>(null);
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [dailyClaimDate, setDailyClaimDate] = useState<string | null>(null);
@@ -134,6 +156,41 @@ export function SwiftQuestApp() {
     }
     return battle.questions[battle.currentIndex] ?? null;
   }, [battle]);
+
+  const selectedWorld = useMemo(() => {
+    if (!selectedWorldId) {
+      return null;
+    }
+    return worlds.find((world) => world.id === selectedWorldId) ?? null;
+  }, [selectedWorldId]);
+
+  const selectedWorldPlan = useMemo(() => {
+    if (!selectedWorldId) {
+      return null;
+    }
+    return getWorldCoursePlan(selectedWorldId);
+  }, [selectedWorldId]);
+
+  const selectedWorldBlueprint = useMemo(() => {
+    if (!selectedWorldId) {
+      return null;
+    }
+    return getWorldCourseBlueprint(selectedWorldId);
+  }, [selectedWorldId]);
+
+  const selectedWorldLessons = useMemo(() => {
+    if (!selectedWorldId) {
+      return [];
+    }
+    return getWorldLessons(selectedWorldId);
+  }, [selectedWorldId]);
+
+  const activeLesson = useMemo(() => {
+    if (!activeLessonId) {
+      return null;
+    }
+    return getWorldLessonById(activeLessonId);
+  }, [activeLessonId]);
 
   const weakTopics = useMemo(() => {
     if (!player) {
@@ -209,6 +266,27 @@ export function SwiftQuestApp() {
     return counts;
   }, [player]);
 
+  const selectedWorldLessonsPassedCount = useMemo(() => {
+    if (!player || !selectedWorldLessons.length) {
+      return 0;
+    }
+    return selectedWorldLessons.filter((lesson) => player.lessonProgress[lesson.id]?.passed).length;
+  }, [player, selectedWorldLessons]);
+
+  const currentLogicGuide = useMemo(() => {
+    if (!currentQuestion) {
+      return null;
+    }
+    return buildLogicCoachGuide(currentQuestion);
+  }, [currentQuestion]);
+
+  const canStartWorldExam = useMemo(() => {
+    if (!player || !selectedWorldId) {
+      return false;
+    }
+    return areAllWorldLessonsPassed(player, selectedWorldId);
+  }, [player, selectedWorldId]);
+
   const onNewGame = () => {
     const nextPlayer = createInitialPlayer(nameInput.trim() || "לומד");
     setPlayer(nextPlayer);
@@ -223,15 +301,79 @@ export function SwiftQuestApp() {
     }
   };
 
-  const startWorldBattle = (worldId: number) => {
-    const questions = getBattleQuestions(worldId, 3);
+  const openWorldCourse = (worldId: number) => {
+    setSelectedWorldId(worldId);
+    setActiveLessonId(null);
+    setSummary(null);
+
+    const plan = getWorldCoursePlan(worldId);
+    const blueprint = getWorldCourseBlueprint(worldId);
+    if (plan) {
+      setScreen("world_course");
+      return;
+    }
+    if (blueprint) {
+      setScreen("world_course");
+    }
+  };
+
+  const openLessonIntro = (lessonId: string) => {
+    const lesson = getWorldLessonById(lessonId);
+    if (!lesson || !player) {
+      return;
+    }
+    if (!isLessonUnlocked(player, lesson)) {
+      return;
+    }
+    setActiveLessonId(lessonId);
+    setScreen("lesson_intro");
+  };
+
+  const startLessonQuiz = (lessonId: string) => {
+    const lesson = getWorldLessonById(lessonId);
+    if (!lesson || !player) {
+      return;
+    }
+    if (!isLessonUnlocked(player, lesson)) {
+      return;
+    }
+
+    const questions = getLessonQuestions(lessonId);
     if (questions.length === 0) {
       return;
     }
 
     setBattle({
-      mode: "world",
+      mode: "lesson",
+      worldId: lesson.worldId,
+      lessonId,
+      startedAtISO: new Date().toISOString(),
+      questions,
+      currentIndex: 0,
+      answers: [],
+    });
+    setSummary(null);
+    setScreen("battle");
+  };
+
+  const startWorldExam = (worldId: number) => {
+    const plan = getWorldCoursePlan(worldId);
+    if (!plan || !player) {
+      return;
+    }
+    if (!areAllWorldLessonsPassed(player, worldId)) {
+      return;
+    }
+
+    const questions = getWorldExamQuestions(worldId);
+    if (questions.length === 0) {
+      return;
+    }
+
+    setBattle({
+      mode: "exam",
       worldId,
+      allowedMistakes: plan.exam.maxMistakes,
       startedAtISO: new Date().toISOString(),
       questions,
       currentIndex: 0,
@@ -338,9 +480,17 @@ export function SwiftQuestApp() {
       return;
     }
 
+    const correctAnswersCount = battle.answers.filter(
+      ({ question, selectedIndex }) => selectedIndex === question.correctAnswerIndex,
+    ).length;
+    const mistakesCount = battle.answers.length - correctAnswersCount;
+    const hasExceededExamMistakes =
+      battle.mode === "exam" &&
+      typeof battle.allowedMistakes === "number" &&
+      mistakesCount > battle.allowedMistakes;
     const isLast = battle.currentIndex >= battle.questions.length - 1;
 
-    if (!isLast) {
+    if (!isLast && !hasExceededExamMistakes) {
       setBattle((currentBattle) => {
         if (!currentBattle) {
           return currentBattle;
@@ -354,15 +504,78 @@ export function SwiftQuestApp() {
       return;
     }
 
+    let updatedPlayer = player;
+    let sessionType: SessionSummary["sessionType"] = "review";
+    let sessionLabel = "קרב חזרה";
+    let passed: boolean | undefined = undefined;
+    let requiredCorrect: number | undefined = undefined;
+    let maxMistakesAllowed: number | undefined = undefined;
+
+    if (battle.mode === "lesson") {
+      const lesson = battle.lessonId ? getWorldLessonById(battle.lessonId) : null;
+      const required = getLessonPassRequiredCorrect();
+      const isPassed = correctAnswersCount >= required;
+
+      requiredCorrect = required;
+      passed = isPassed;
+      sessionType = "lesson";
+      sessionLabel = lesson ? `שיעור: ${lesson.title}` : "שיעור מושג";
+
+      if (battle.lessonId) {
+        updatedPlayer = upsertLessonProgress(
+          updatedPlayer,
+          battle.lessonId,
+          correctAnswersCount,
+          isPassed,
+        );
+      }
+    } else if (battle.mode === "exam") {
+      const allowed = battle.allowedMistakes ?? 5;
+      const isPassed = mistakesCount <= allowed;
+
+      maxMistakesAllowed = allowed;
+      passed = isPassed;
+      sessionType = "world_exam";
+      sessionLabel = `מבחן עולם ${battle.worldId}`;
+
+      updatedPlayer = upsertWorldExamProgress(
+        updatedPlayer,
+        battle.worldId,
+        correctAnswersCount,
+        mistakesCount,
+        isPassed,
+      );
+
+      if (isPassed) {
+        const nextWorldId = Math.min(12, battle.worldId + 1);
+        updatedPlayer = {
+          ...updatedPlayer,
+          unlockedWorlds: Array.from(new Set([...updatedPlayer.unlockedWorlds, nextWorldId])),
+        };
+      }
+    }
+
     const finalized = finalizeSession({
-      player,
+      player: updatedPlayer,
       worldId: battle.worldId,
       answers: battle.answers,
       startedAtISO: battle.startedAtISO,
+      sessionMeta: {
+        sessionType,
+        sessionLabel,
+        passed,
+        mistakesMade: mistakesCount,
+        maxMistakesAllowed,
+        requiredCorrect,
+      },
     });
 
     setPlayer(finalized.player);
     setSummary(finalized.summary);
+    setSelectedWorldId(battle.worldId);
+    if (battle.mode !== "lesson") {
+      setActiveLessonId(null);
+    }
     setBattle(null);
     setScreen("summary");
   };
@@ -434,8 +647,8 @@ export function SwiftQuestApp() {
 
   if (!player && screen === "welcome") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-4 py-12">
-        <section className="card w-full max-w-xl rounded-3xl p-7">
+      <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-3 py-8 sm:px-4 sm:py-12">
+        <section className="card w-full max-w-xl rounded-3xl p-5 sm:p-7">
           <MixedText text="Swift Quest" as="p" className="text-xs uppercase tracking-[0.25em] text-sky" />
           <MixedText text="מסע לימוד קוד בסגנון RPG" as="h1" className="mt-2 text-3xl font-semibold text-fog" />
           <MixedText
@@ -482,8 +695,8 @@ export function SwiftQuestApp() {
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="hero-header card mb-10 rounded-3xl p-5">
+    <main className="app-shell mx-auto max-w-6xl px-3 py-6 sm:px-4 sm:py-8">
+      <header className="hero-header card mb-9 rounded-3xl p-4 sm:mb-10 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-sky">בסיס הבית</p>
@@ -605,7 +818,10 @@ export function SwiftQuestApp() {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {worlds.map((world) => {
-              const unlocked = player.unlockedWorlds.includes(world.id) || world.id === 1;
+              const unlocked = isWorldUnlockedByCourse(player, world.id);
+              const hasPlan = Boolean(getWorldCoursePlan(world.id));
+              const hasBlueprint = Boolean(getWorldCourseBlueprint(world.id));
+              const passedExam = hasPassedWorldExam(player, world.id);
               return (
                 <article
                   key={world.id}
@@ -629,15 +845,263 @@ export function SwiftQuestApp() {
 
                   <button
                     className={`btn mt-4 w-full ${unlocked ? "btn-primary" : "btn-ghost"}`}
-                    onClick={() => startWorldBattle(world.id)}
+                    onClick={() => openWorldCourse(world.id)}
                     type="button"
-                    disabled={!unlocked}
+                    disabled={!unlocked || (!hasPlan && !hasBlueprint)}
                   >
-                    {unlocked ? "כניסה לקרב" : `נפתח ברמה ${world.unlockRequirement.minLevel}`}
+                    {passedExam
+                      ? "כניסה לעולם (עבר מבחן)"
+                      : hasPlan
+                        ? unlocked
+                          ? "כניסה למסלול הקורס"
+                          : "נעול - עבר מבחן עולם קודם"
+                        : hasBlueprint
+                          ? "תוכנית לימוד זמינה (תוכן בבנייה)"
+                          : "תוכן קורס בבנייה"}
                   </button>
                 </article>
               );
             })}
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "world_course" && selectedWorld ? (
+        <section className="card rounded-3xl p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-sky">מסלול קורס</p>
+              <MixedText text={`${selectedWorld.name}`} as="h2" className="mt-1 text-xl font-semibold text-fog" />
+              <MixedText text={selectedWorld.description} as="p" className="mt-1 text-sm text-fog/85" />
+            </div>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setScreen("world_map")}
+              type="button"
+            >
+              חזרה למפה
+            </button>
+          </div>
+
+          {selectedWorldPlan ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="surface-block-accent p-3 text-sm">
+                  <p className="text-fog/80">שיעורים שהושלמו</p>
+                  <p className="text-xl font-semibold text-sky">
+                    {selectedWorldLessonsPassedCount}/{selectedWorldLessons.length}
+                  </p>
+                </div>
+                <div className="surface-block-success p-3 text-sm">
+                  <p className="text-fog/80">סטטוס מבחן עולם</p>
+                  <p className="text-base font-semibold text-fog">
+                    {hasPassedWorldExam(player, selectedWorld.id) ? "עבר בהצלחה" : "טרם עבר"}
+                  </p>
+                </div>
+                <div className="surface-block-warning p-3 text-sm">
+                  <p className="text-fog/80">כלל מעבר</p>
+                  <p className="text-base font-semibold text-fog">30 שאלות, עד 5 טעויות</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {selectedWorldLessons.map((lesson) => {
+                  const lessonProgress = player.lessonProgress[lesson.id];
+                  const passed = Boolean(lessonProgress?.passed);
+                  const unlocked = isLessonUnlocked(player, lesson);
+
+                  return (
+                    <article key={lesson.id} className="surface-block-muted rounded-2xl p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.14em] text-sky">
+                            שיעור {lesson.order} · {lesson.concept}
+                          </p>
+                          <MixedText text={lesson.title} as="h3" className="mt-1 text-lg font-semibold text-fog" />
+                          <MixedText text={lesson.summary} as="p" className="mt-1 text-sm text-fog/85" />
+                        </div>
+                        <span className="tag-pill text-xs text-fog">
+                          {passed ? "הושלם" : unlocked ? "זמין" : "נעול"}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fog/80">
+                        <span className="tag-pill">10 שאלות</span>
+                        <span className="tag-pill">נדרש: {getLessonPassRequiredCorrect()}/10</span>
+                        <span className="tag-pill">
+                          שיא: {lessonProgress?.bestCorrect ?? 0}/10
+                        </span>
+                        <span className="tag-pill">ניסיונות: {lessonProgress?.attempts ?? 0}</span>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => openLessonIntro(lesson.id)}
+                          type="button"
+                          disabled={!unlocked}
+                        >
+                          פתח שיעור
+                        </button>
+                        <button
+                          className="btn btn-accent"
+                          onClick={() => startLessonQuiz(lesson.id)}
+                          type="button"
+                          disabled={!unlocked}
+                        >
+                          התחל 10 שאלות
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="surface-block-accent mt-4 rounded-2xl p-4">
+                <p className="text-sm font-semibold text-sky">מבחן סיום עולם</p>
+                <p className="mt-1 text-sm text-fog/90">
+                  המבחן כולל 30 שאלות מכל המושגים בעולם. מותר לטעות עד 5 פעמים.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    className="btn btn-warning"
+                    onClick={() => startWorldExam(selectedWorld.id)}
+                    type="button"
+                    disabled={!canStartWorldExam}
+                  >
+                    התחל מבחן עולם
+                  </button>
+                  {!canStartWorldExam ? (
+                    <span className="tag-pill text-xs text-fog/90">קודם מסיימים את כל השיעורים</span>
+                  ) : null}
+                </div>
+              </div>
+            </>
+          ) : selectedWorldBlueprint ? (
+            <div className="space-y-3">
+              <div className="surface-block-muted rounded-2xl p-4 text-sm text-fog/88">
+                <p className="font-semibold text-fog">תוכנית קורס לעולם הזה מוכנה.</p>
+                <p className="mt-1">
+                  כרגע בנק השאלות המלא עדיין בבנייה, אבל סדר הלימוד והלוגיקה כבר מוגדרים.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="surface-block-accent p-3 text-sm">
+                  <p className="text-fog/80">עולם</p>
+                  <p className="text-base font-semibold text-fog">
+                    {selectedWorldBlueprint.worldId}. {selectedWorldBlueprint.title}
+                  </p>
+                </div>
+                <div className="surface-block-muted p-3 text-sm">
+                  <p className="text-fog/80">דרישת קדם</p>
+                  <p className="text-base font-semibold text-fog">{selectedWorldBlueprint.prerequisite}</p>
+                </div>
+                <div className="surface-block-warning p-3 text-sm">
+                  <p className="text-fog/80">חוק מבחן עולם</p>
+                  <p className="text-base font-semibold text-fog">{selectedWorldBlueprint.examRule}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {selectedWorldBlueprint.lessons.map((lesson) => (
+                  <article key={lesson.order} className="surface-block-muted rounded-2xl p-4">
+                    <p className="text-xs uppercase tracking-[0.12em] text-sky">
+                      שיעור {lesson.order} · {lesson.concept}
+                    </p>
+                    <p className="mt-1 text-sm text-fog">
+                      <span className="font-semibold">מטרת למידה:</span> {lesson.goal}
+                    </p>
+                    <p className="mt-1 text-sm text-fog/86">
+                      <span className="font-semibold">מיומנות לוגית:</span> {lesson.logicSkill}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="surface-block-muted rounded-2xl p-4 text-sm text-fog/85">
+              מסלול הקורס לעולם הזה עדיין בבנייה.
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {screen === "lesson_intro" && activeLesson ? (
+        <section className="card rounded-3xl p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-sky">
+                שיעור {activeLesson.order} · {activeLesson.concept}
+              </p>
+              <MixedText text={activeLesson.title} as="h2" className="mt-1 text-xl font-semibold text-fog" />
+              <MixedText text={activeLesson.summary} as="p" className="mt-1 text-sm text-fog/85" />
+            </div>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setScreen("world_course")}
+              type="button"
+            >
+              חזרה למסלול
+            </button>
+          </div>
+
+          <div className="surface-block-accent rounded-2xl p-4 text-sm text-fog/95">
+            <p className="font-semibold text-sky">הסבר מפורט על המושג</p>
+            <MixedText text={activeLesson.deepDive} as="p" className="mt-2" />
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <article className="surface-block-muted rounded-2xl p-4">
+              <p className="text-sm font-semibold text-fog">מה חייבים לזכור</p>
+              <ul className="mt-2 space-y-1 text-sm text-fog/85">
+                {activeLesson.keyPoints.map((point) => (
+                  <li key={point}>
+                    <MixedText text={`• ${point}`} />
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="surface-block-muted rounded-2xl p-4">
+              <p className="text-sm font-semibold text-fog">שיטה לפתרון שאלות לוגיות</p>
+              <ol className="mt-2 space-y-1 text-sm text-fog/85">
+                {activeLesson.logicSteps.map((step, index) => (
+                  <li key={step}>
+                    <MixedText text={`${index + 1}. ${step}`} />
+                  </li>
+                ))}
+              </ol>
+            </article>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {activeLesson.examples.map((example) => (
+              <article key={example.title} className="surface-block-muted rounded-2xl p-4">
+                <MixedText text={example.title} as="h3" className="text-sm font-semibold text-fog" />
+                <div className="mt-2">
+                  <CodeSnippet code={example.code} language="swift" />
+                </div>
+                <MixedText text={example.explanation} as="p" className="mt-2 text-sm text-fog/85" />
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              className="btn btn-primary"
+              onClick={() => startLessonQuiz(activeLesson.id)}
+              type="button"
+            >
+              התחל 10 שאלות על המושג הזה
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setScreen("world_course")}
+              type="button"
+            >
+              חזרה למסלול העולם
+            </button>
           </div>
         </section>
       ) : null}
@@ -647,7 +1111,18 @@ export function SwiftQuestApp() {
           <div className="card rounded-3xl p-5">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <MixedText
-                text={`${battle.mode === "review" ? "קרב חזרה" : "קרב עולם"} | שאלה ${
+                text={
+                  battle.mode === "exam"
+                    ? "מבחן עולם"
+                    : battle.mode === "lesson"
+                      ? "שיעור מושג"
+                      : "קרב חזרה"
+                }
+                as="p"
+                className="text-xs uppercase tracking-[0.18em] text-sky"
+              />
+              <MixedText
+                text={`שאלה ${
                   battle.currentIndex + 1
                 }/${battle.questions.length}`}
                 as="p"
@@ -664,6 +1139,18 @@ export function SwiftQuestApp() {
                 יציאה
               </button>
             </div>
+            {battle.mode === "exam" ? (
+              <p className="mt-2 text-xs text-fog/85">
+                טעויות עד עכשיו:{" "}
+                {
+                  battle.answers.filter(
+                    ({ question, selectedIndex }) =>
+                      selectedIndex !== question.correctAnswerIndex,
+                  ).length
+                }
+                /{battle.allowedMistakes}
+              </p>
+            ) : null}
             <div className="mt-3">
               <div className="progress-track" aria-hidden="true">
                 <div
@@ -687,6 +1174,25 @@ export function SwiftQuestApp() {
               as="h2"
               className="mt-2 text-xl font-semibold leading-8 text-fog"
             />
+
+            {currentLogicGuide ? (
+              <div className="surface-block-accent mt-3 rounded-2xl p-3 text-sm text-fog/92">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky">
+                  איך פותרים לוגית את השאלה הזו
+                </p>
+                <p className="mt-1 font-semibold text-fog">{currentLogicGuide.title}</p>
+                <ol className="mt-2 space-y-1 text-sm">
+                  {currentLogicGuide.steps.map((step, index) => (
+                    <li key={step}>
+                      <MixedText text={`${index + 1}. ${step}`} />
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-2 text-xs text-fog/80">
+                  <MixedText text={`בדיקה מהירה: ${currentLogicGuide.quickCheck}`} />
+                </p>
+              </div>
+            ) : null}
 
             {currentQuestion.codeSnippet ? (
               <div className="mt-4">
@@ -734,10 +1240,36 @@ export function SwiftQuestApp() {
 
       {screen === "summary" && summary ? (
         <section className="card rounded-3xl p-6">
+          {summary.sessionLabel ? (
+            <p className="text-xs uppercase tracking-[0.18em] text-sky">{summary.sessionLabel}</p>
+          ) : null}
           <h2 className="text-2xl font-semibold text-fog">סיכום סוף סשן</h2>
           <p className="mt-2 text-sm text-fog/85">
             פתרת {summary.totalQuestions} שאלות, מתוכן {summary.correctAnswers} נכונות.
           </p>
+          {typeof summary.passed === "boolean" ? (
+            <div
+              className={`mt-3 rounded-xl border px-3 py-2 text-sm ${
+                summary.passed
+                  ? "surface-block-success text-fog"
+                  : "surface-block-danger text-[#8c2330]"
+              }`}
+            >
+              {summary.passed
+                ? "סטטוס: עבר בהצלחה."
+                : "סטטוס: לא עבר. חזרה ממוקדת ואז ניסיון נוסף."}
+              {summary.requiredCorrect ? (
+                <span className="block text-xs">
+                  נדרש: {summary.requiredCorrect} תשובות נכונות.
+                </span>
+              ) : null}
+              {typeof summary.maxMistakesAllowed === "number" ? (
+                <span className="block text-xs">
+                  טעויות: {summary.mistakesMade}/{summary.maxMistakesAllowed}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="surface-block-accent p-3 text-sm">
@@ -764,6 +1296,15 @@ export function SwiftQuestApp() {
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
+            {summary.sessionType === "lesson" || summary.sessionType === "world_exam" ? (
+              <button
+                className="btn btn-accent"
+                onClick={() => setScreen("world_course")}
+                type="button"
+              >
+                חזרה למסלול עולם
+              </button>
+            ) : null}
             <button
               className="btn btn-primary"
               onClick={() => setScreen("home")}

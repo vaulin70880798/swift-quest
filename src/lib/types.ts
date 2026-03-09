@@ -49,6 +49,19 @@ export interface TopicMastery {
   correct: number;
 }
 
+export interface LessonProgressEntry {
+  attempts: number;
+  bestCorrect: number;
+  passed: boolean;
+}
+
+export interface WorldExamProgressEntry {
+  attempts: number;
+  bestCorrect: number;
+  bestMistakes: number;
+  passed: boolean;
+}
+
 export interface Player {
   id: string;
   username: string;
@@ -66,6 +79,8 @@ export interface Player {
   inventory: Record<string, number>;
   achievements: string[];
   sessionHistory: SessionSummary[];
+  lessonProgress: Record<string, LessonProgressEntry>;
+  worldExamProgress: Record<number, WorldExamProgressEntry>;
 }
 
 export interface World {
@@ -108,6 +123,12 @@ export interface SessionSummary {
   improvedTopics: string[];
   weakTopics: string[];
   memorySnippet: string;
+  sessionType?: "lesson" | "world_exam" | "review";
+  sessionLabel?: string;
+  passed?: boolean;
+  mistakesMade?: number;
+  maxMistakesAllowed?: number;
+  requiredCorrect?: number;
 }
 
 export interface DailyChallenge {
