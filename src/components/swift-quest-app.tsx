@@ -1120,11 +1120,12 @@ export function SwiftQuestApp() {
                 </div>
               </div>
 
-              {hasPassedWorldExam(player, selectedWorld.id) && selectedMiniProject ? (
+              {selectedMiniProject ? (
                 <div className="surface-block-success mt-4 rounded-2xl p-4">
                   <p className="text-sm font-semibold text-mint">מיני פרויקט אופציונלי</p>
                   <p className="mt-1 text-sm text-fog/90">
-                    פרויקט קצר עם קונסולה: רק אם הפלט תואם בדיוק לדרישה, הפרויקט יעבור.
+                    הפרויקט תמיד פתוח בעולם הזה. אפשר להיכנס אליו מתי שרוצים.
+                    כדי לעבור צריך שהפלט בקונסולה יתאים בדיוק לדרישה.
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-fog/85">
                     <span className="tag-pill">
@@ -1143,7 +1144,7 @@ export function SwiftQuestApp() {
                       onClick={() => openMiniProject(selectedWorld.id)}
                       type="button"
                     >
-                      פתיחת מיני פרויקט
+                      פתיחת פרויקט
                     </button>
                   </div>
                 </div>
