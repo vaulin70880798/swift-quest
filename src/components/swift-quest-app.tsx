@@ -483,7 +483,7 @@ export function SwiftQuestApp() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="card mb-5 rounded-3xl p-5">
+      <header className="hero-header card mb-10 rounded-3xl p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-sky">בסיס הבית</p>
@@ -496,6 +496,7 @@ export function SwiftQuestApp() {
             <span className="stat-pill">רצף {player.streak}</span>
           </div>
         </div>
+        <div className="hero-header-bubble" aria-hidden="true" />
       </header>
 
       {screen === "home" ? (

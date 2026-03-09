@@ -53,7 +53,7 @@ export function ExplanationModal({
           className={`mb-4 rounded-2xl border p-3 text-sm ${
             isCorrect
               ? "surface-block-success text-mint"
-              : "border-red-300/30 bg-red-400/10 text-red-200"
+              : "surface-block-danger text-[#ffe6e9]"
           }`}
         >
           {isCorrect
@@ -72,12 +72,12 @@ export function ExplanationModal({
             className={`rounded-2xl border p-3 ${
               isCorrect
                 ? "surface-block-success"
-                : "border-red-300/30 bg-red-400/10"
+                : "surface-block-danger"
             }`}
           >
             <p
               className={`text-xs uppercase tracking-wide ${
-                isCorrect ? "text-mint" : "text-red-200"
+                isCorrect ? "text-mint" : "text-[#ffcfd4]"
               }`}
             >
               {isCorrect ? "הבחירה שלך (נכונה)" : "הבחירה שלך"}
