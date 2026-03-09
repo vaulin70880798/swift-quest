@@ -38,11 +38,17 @@ type Archetype =
   | "function"
   | "flow"
   | "collection"
+  | "enum"
   | "struct"
   | "class"
   | "protocol"
   | "closure"
   | "async"
+  | "generic"
+  | "memory"
+  | "networking"
+  | "persistence"
+  | "tooling"
   | "swiftui"
   | "state";
 
@@ -152,35 +158,206 @@ function retryWeightByDifficulty(difficulty: Difficulty): number {
   return 2;
 }
 
-function resolveArchetype(worldId: number): Archetype {
-  switch (worldId) {
-    case 1:
-      return "basics";
-    case 2:
-      return "optional";
-    case 3:
-      return "function";
-    case 4:
-      return "flow";
-    case 5:
-      return "collection";
-    case 6:
-      return "struct";
-    case 7:
-      return "class";
-    case 8:
-      return "protocol";
-    case 9:
-      return "closure";
-    case 10:
-      return "async";
-    case 11:
-      return "swiftui";
-    case 12:
-      return "state";
-    default:
-      return "basics";
+function resolveArchetype(worldId: number, topic: string): Archetype {
+  const normalizedTopic = topic.toLowerCase();
+
+  if (
+    normalizedTopic.includes("swiftui") ||
+    normalizedTopic.includes("navigation") ||
+    normalizedTopic.includes("sheet") ||
+    normalizedTopic.includes("alert") ||
+    normalizedTopic.includes("view")
+  ) {
+    return "swiftui";
   }
+
+  if (
+    normalizedTopic.includes("@state") ||
+    normalizedTopic.includes("@binding") ||
+    normalizedTopic.includes("@observedobject") ||
+    normalizedTopic.includes("@stateobject") ||
+    normalizedTopic.includes("@environmentobject") ||
+    normalizedTopic.includes("data flow")
+  ) {
+    return "state";
+  }
+
+  if (
+    normalizedTopic.includes("optional") ||
+    normalizedTopic.includes("nil") ||
+    normalizedTopic.includes("guard let") ||
+    normalizedTopic.includes("if let")
+  ) {
+    return "optional";
+  }
+
+  if (
+    normalizedTopic.includes("collection") ||
+    normalizedTopic.includes("array") ||
+    normalizedTopic.includes("dictionary") ||
+    normalizedTopic.includes("set") ||
+    normalizedTopic.includes("map") ||
+    normalizedTopic.includes("filter")
+  ) {
+    return "collection";
+  }
+
+  if (
+    normalizedTopic.includes("enum") ||
+    normalizedTopic.includes("raw value") ||
+    normalizedTopic.includes("associated value")
+  ) {
+    return "enum";
+  }
+
+  if (
+    normalizedTopic.includes("protocol") ||
+    normalizedTopic.includes("extension") ||
+    normalizedTopic.includes("conformance") ||
+    normalizedTopic.includes("associatedtype")
+  ) {
+    return "protocol";
+  }
+
+  if (
+    normalizedTopic.includes("generic") ||
+    normalizedTopic.includes("where clause") ||
+    normalizedTopic.includes("type parameters") ||
+    normalizedTopic.includes("opaque")
+  ) {
+    return "generic";
+  }
+
+  if (
+    normalizedTopic.includes("arc") ||
+    normalizedTopic.includes("weak") ||
+    normalizedTopic.includes("unowned") ||
+    normalizedTopic.includes("retain") ||
+    normalizedTopic.includes("memory")
+  ) {
+    return "memory";
+  }
+
+  if (
+    normalizedTopic.includes("urlsession") ||
+    normalizedTopic.includes("codable") ||
+    normalizedTopic.includes("http") ||
+    normalizedTopic.includes("api")
+  ) {
+    return "networking";
+  }
+
+  if (
+    normalizedTopic.includes("core data") ||
+    normalizedTopic.includes("swiftdata") ||
+    normalizedTopic.includes("userdefaults") ||
+    normalizedTopic.includes("filemanager") ||
+    normalizedTopic.includes("persistence")
+  ) {
+    return "persistence";
+  }
+
+  if (
+    normalizedTopic.includes("xctest") ||
+    normalizedTopic.includes("testing") ||
+    normalizedTopic.includes("standard library") ||
+    normalizedTopic.includes("algorithm") ||
+    normalizedTopic.includes("complexity") ||
+    normalizedTopic.includes("package") ||
+    normalizedTopic.includes("module") ||
+    normalizedTopic.includes("dependency") ||
+    normalizedTopic.includes("debug") ||
+    normalizedTopic.includes("instruments") ||
+    normalizedTopic.includes("performance") ||
+    normalizedTopic.includes("keychain") ||
+    normalizedTopic.includes("security") ||
+    normalizedTopic.includes("accessibility") ||
+    normalizedTopic.includes("localization") ||
+    normalizedTopic.includes("lifecycle") ||
+    normalizedTopic.includes("ci/cd") ||
+    normalizedTopic.includes("testflight")
+  ) {
+    return "tooling";
+  }
+
+  if (
+    normalizedTopic.includes("async") ||
+    normalizedTopic.includes("await") ||
+    normalizedTopic.includes("task") ||
+    normalizedTopic.includes("actor") ||
+    normalizedTopic.includes("throw") ||
+    normalizedTopic.includes("result")
+  ) {
+    return "async";
+  }
+
+  if (
+    normalizedTopic.includes("closure") ||
+    normalizedTopic.includes("capture") ||
+    normalizedTopic.includes("escaping")
+  ) {
+    return "closure";
+  }
+
+  if (normalizedTopic.includes("class") || normalizedTopic.includes("inheritance")) {
+    return "class";
+  }
+
+  if (normalizedTopic.includes("struct")) {
+    return "struct";
+  }
+
+  if (normalizedTopic.includes("func") || normalizedTopic.includes("function")) {
+    return "function";
+  }
+
+  if (
+    normalizedTopic.includes("if") ||
+    normalizedTopic.includes("switch") ||
+    normalizedTopic.includes("loop") ||
+    normalizedTopic.includes("while")
+  ) {
+    return "flow";
+  }
+
+  // Fallback by early-course ids keeps starter content coherent.
+  if (worldId <= 2) {
+    return "basics";
+  }
+  if (worldId <= 4) {
+    return "function";
+  }
+  if (worldId <= 6) {
+    return "collection";
+  }
+  if (worldId <= 10) {
+    return "protocol";
+  }
+  if (worldId <= 12) {
+    return "async";
+  }
+  if (worldId <= 14) {
+    return "generic";
+  }
+  if (worldId <= 16) {
+    return "memory";
+  }
+  if (worldId <= 20) {
+    return "tooling";
+  }
+  if (worldId <= 21) {
+    return "swiftui";
+  }
+  if (worldId <= 24) {
+    return "state";
+  }
+  if (worldId === 25) {
+    return "networking";
+  }
+  if (worldId === 26) {
+    return "persistence";
+  }
+  return "tooling";
 }
 
 function buildPack(archetype: Archetype, topic: string, seed: number): ArchetypePack {
@@ -319,6 +496,162 @@ function buildPack(archetype: Archetype, topic: string, seed: number): Archetype
         refactorFrom: `var found = false\nfor n in [1,2,3] {\n  if n == 2 { found = true }\n}\nprint(found)`,
         refactorTo: `print([1,2,3].contains(2))`,
         refactorReason: "שימוש ב-`contains` קצר וברור יותר מחיפוש ידני.",
+      };
+
+    case "enum":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "Enum with cases",
+        validSnippet: `enum Mode {\n  case easy\n  case hard\n}\nlet mode: Mode = .easy\nprint(mode == .easy)`,
+        expectedOutcome: "true",
+        buggySnippet: `enum Status {\n  case ready\n}\nlet current: Status = "ready"`,
+        bugReason: "Enum לא מאותחל מ-String כזה; צריך להשתמש ב-case (`.ready`) או raw value מתאים.",
+        chooseCorrectOptions: [
+          `enum Direction {\n  case left\n  case right\n}`,
+          `enum Direction = { left, right }`,
+          `enum Direction {\n  left, right\n}`,
+          `Direction enum {\n  case left\n}`,
+        ],
+        chooseCorrectReason: "האופציה הראשונה היא תחביר enum תקין ב-Swift.",
+        completionSnippet: `enum Result {\n  case success\n  case failure\n}\nlet value: Result = .___`,
+        completionCorrect: "success",
+        completionDistractors: ["ok", "true", "value"],
+        comparisonA: `enum ApiResult {\n  case success(Int)\n  case failure(String)\n}`,
+        comparisonB: `enum ApiCode: Int {\n  case success = 200\n  case failure = 500\n}`,
+        comparisonCorrect: "A משתמש ב-associated values, B משתמש ב-raw values.",
+        refactorFrom: `if code == 200 {\n  print("ok")\n} else {\n  print("fail")\n}`,
+        refactorTo: `enum ApiCode: Int { case ok = 200, fail = 500 }\nlet state: ApiCode = code == 200 ? .ok : .fail`,
+        refactorReason: "Enum נותן מודל קריא ובטוח יותר ממספרים קסומים.",
+      };
+
+    case "generic":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "Generics and constraints",
+        validSnippet: `func swapValues<T>(_ a: inout T, _ b: inout T) {\n  let temp = a\n  a = b\n  b = temp\n}\nvar x = ${n1}\nvar y = ${n2}\nswapValues(&x, &y)\nprint(x)`,
+        expectedOutcome: String(n2),
+        buggySnippet: `func first<T>(_ items: [T]) -> T {\n  items.first\n}`,
+        bugReason: "`items.first` מחזיר `T?`, לא `T` ישיר.",
+        chooseCorrectOptions: [
+          `func identity<T>(_ value: T) -> T {\n  value\n}`,
+          `func identity(_ value: T) -> T {\n  value\n}`,
+          `func identity<T>(_ value: T) -> Int {\n  value\n}`,
+          `func identity<T>(value) -> T {\n  value\n}`,
+        ],
+        chooseCorrectReason: "האופציה הראשונה מגדירה generic function תקין.",
+        completionSnippet: `func isEqual<T: Equatable>(_ a: T, _ b: T) -> Bool {\n  return ___\n}`,
+        completionCorrect: "a == b",
+        completionDistractors: ["a = b", "a === b", "equal(a,b)"],
+        comparisonA: `func printAny<T>(_ value: T) { print(value) }`,
+        comparisonB: `func printAny(_ value: Any) { print(value) }`,
+        comparisonCorrect: "A שומר מידע טיפוסי ב-compile-time, B מוחק לטיפוס Any.",
+        refactorFrom: `func intMax(_ a: Int, _ b: Int) -> Int { a > b ? a : b }\nfunc doubleMax(_ a: Double, _ b: Double) -> Double { a > b ? a : b }`,
+        refactorTo: `func maxValue<T: Comparable>(_ a: T, _ b: T) -> T { a > b ? a : b }`,
+        refactorReason: "Generics מוריד כפילויות ומשמר type safety.",
+      };
+
+    case "memory":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "ARC and retain cycles",
+        validSnippet: `class Owner {\n  var child: Child?\n}\nclass Child {\n  weak var owner: Owner?\n}\nlet o = Owner()\nlet c = Child()\no.child = c\nc.owner = o\nprint(o.child != nil)`,
+        expectedOutcome: "true",
+        buggySnippet: `class A {\n  var b: B?\n}\nclass B {\n  var a: A?\n}`,
+        bugReason: "שני הצדדים מחזיקים reference חזק, וזה עלול ליצור retain cycle.",
+        chooseCorrectOptions: [
+          `class Child {\n  weak var parent: Parent?\n}`,
+          `class Child {\n  unowned var parent: Parent?\n}`,
+          `class Child {\n  var parent weak: Parent?\n}`,
+          `class Child {\n  arc var parent: Parent?\n}`,
+        ],
+        chooseCorrectReason: "`weak` הוא הפתרון הבטוח הנפוץ לקשר דו-כיווני אופציונלי.",
+        completionSnippet: `class Node {\n  ___ var parent: Node?\n}`,
+        completionCorrect: "weak",
+        completionDistractors: ["strong", "arc", "final"],
+        comparisonA: `weak var delegate: Delegate?`,
+        comparisonB: `unowned var delegate: Delegate`,
+        comparisonCorrect: "`weak` הוא Optional ובטוח כשאובייקט יכול להשתחרר; `unowned` לא Optional.",
+        refactorFrom: `class VM {\n  var onUpdate: (() -> Void)?\n  func bind() {\n    onUpdate = { self.reload() }\n  }\n  func reload() {}\n}`,
+        refactorTo: `class VM {\n  var onUpdate: (() -> Void)?\n  func bind() {\n    onUpdate = { [weak self] in self?.reload() }\n  }\n  func reload() {}\n}`,
+        refactorReason: "Capture list עם `[weak self]` מפחית סיכון ל-retain cycle.",
+      };
+
+    case "networking":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "Networking layer basics",
+        validSnippet: `struct User: Codable {\n  let id: Int\n}\nlet decoder = JSONDecoder()\nlet data = #"{"id": ${n2}}"#.data(using: .utf8)!\nlet user = try? decoder.decode(User.self, from: data)\nprint(user?.id ?? 0)`,
+        expectedOutcome: String(n2),
+        buggySnippet: `let url = URL(string: "https://api.example.com")\nlet task = URLSession.shared.dataTask(with: url)`,
+        bugReason: "URL הוא Optional; צריך unwrap בטוח לפני שימוש ב-dataTask.",
+        chooseCorrectOptions: [
+          `guard let url = URL(string: "https://api.example.com") else { return }\nlet task = URLSession.shared.dataTask(with: url) { _,_,_ in }\ntask.resume()`,
+          `let url = URL("https://api.example.com")\nURLSession.dataTask(url)`,
+          `URLSession.shared.dataTask("https://api.example.com")`,
+          `let task = URLSession.shared.dataTask(with: "https://api.example.com")`,
+        ],
+        chooseCorrectReason: "האופציה הראשונה מבצעת unwrap נכון ו-resume למשימה.",
+        completionSnippet: `let decoder = JSONDecoder()\nlet model = try decoder.decode(User.self, ___ data)`,
+        completionCorrect: "from:",
+        completionDistractors: ["with:", "at:", "using:"],
+        comparisonA: `try? decoder.decode(User.self, from: data)`,
+        comparisonB: `try! decoder.decode(User.self, from: data)`,
+        comparisonCorrect: "`try?` בטוח יותר; `try!` עלול לקרוס בשגיאת decode.",
+        refactorFrom: `if let data = data {\n  if let user = try? decoder.decode(User.self, from: data) {\n    print(user)\n  }\n}`,
+        refactorTo: `guard let data = data,\n      let user = try? decoder.decode(User.self, from: data) else { return }\nprint(user)`,
+        refactorReason: "guard משטח nesting ומקל על קריאה ותחזוקה.",
+      };
+
+    case "persistence":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "Local persistence",
+        validSnippet: `UserDefaults.standard.set(${n2}, forKey: "highScore")\nlet score = UserDefaults.standard.integer(forKey: "highScore")\nprint(score)`,
+        expectedOutcome: String(n2),
+        buggySnippet: `let defaults = UserDefaults.standard\ndefaults.set(User(), forKey: "user")`,
+        bugReason: "UserDefaults לא שומר אובייקטים שרירותיים; צריך טיפוסים נתמכים או קידוד.",
+        chooseCorrectOptions: [
+          `UserDefaults.standard.set("dark", forKey: "theme")`,
+          `UserDefaults.standard.save("dark", key: "theme")`,
+          `UserDefaults.standard.setObject("dark", forKey: "theme")`,
+          `UserDefaults.theme = "dark"`,
+        ],
+        chooseCorrectReason: "האופציה הראשונה היא API תקין של UserDefaults.",
+        completionSnippet: `let defaults = UserDefaults.standard\nlet name = defaults.string(forKey: "name") ___ "Guest"`,
+        completionCorrect: "??",
+        completionDistractors: ["&&", "==", "=>"],
+        comparisonA: `UserDefaults`,
+        comparisonB: `SwiftData/Core Data`,
+        comparisonCorrect: "UserDefaults מתאים להגדרות פשוטות; SwiftData/Core Data לנתונים מורכבים ורלציוניים.",
+        refactorFrom: `let value = defaults.string(forKey: "theme")\nif value == nil {\n  print("light")\n} else {\n  print(value!)\n}`,
+        refactorTo: `print(defaults.string(forKey: "theme") ?? "light")`,
+        refactorReason: "מחליפים unwrap מסוכן ב-fallback בטוח ונקי.",
+      };
+
+    case "tooling":
+      return {
+        codeLanguage: "swift",
+        conceptTerm: "Production engineering workflow",
+        validSnippet: `import XCTest\n\nfinal class ScoreTests: XCTestCase {\n  func testSum() {\n    XCTAssertEqual(2 + 3, 5)\n  }\n}`,
+        expectedOutcome: "test passes",
+        buggySnippet: `func testLogin() {\n  XCTAssertEqual(response.code, 200)\n}`,
+        bugReason: "פונקציית test צריכה להיות בתוך XCTestCase כדי לרוץ במסגרת בדיקות.",
+        chooseCorrectOptions: [
+          `measure {\n  runHotPath()\n}`,
+          `profile {\n  runHotPath()\n}`,
+          `benchmark {\n  runHotPath()\n}`,
+          `instrument {\n  runHotPath()\n}`,
+        ],
+        chooseCorrectReason: "ב-XCTest משתמשים ב-`measure` למדידת ביצועים.",
+        completionSnippet: `#if DEBUG\nprint("debug log")\n___`,
+        completionCorrect: "#endif",
+        completionDistractors: ["#end", "endif", "}"],
+        comparisonA: `assertionFailure("unexpected state")`,
+        comparisonB: `preconditionFailure("unexpected state")`,
+        comparisonCorrect: "assertionFailure פעיל בעיקר ב-Debug; preconditionFailure מיועד גם לתנאי runtime קריטיים.",
+        refactorFrom: `print("user token: \\(token)")`,
+        refactorTo: `print("user authenticated")`,
+        refactorReason: "ב-production נמנעים מלחשוף מידע רגיש בלוגים.",
       };
 
     case "struct":
@@ -813,7 +1146,7 @@ function buildAutoQuestion(
   topic: string,
   localIndex: number,
 ): Question {
-  const archetype = resolveArchetype(worldId);
+  const archetype = resolveArchetype(worldId, topic);
   const format = selectFormat(archetype, localIndex);
   const difficulty = DIFFICULTY_ROTATION[localIndex % DIFFICULTY_ROTATION.length];
   const pack = buildPack(archetype, topic, localIndex + worldId * 97);
@@ -880,4 +1213,3 @@ export function ensureMinimumWorldQuestions(
 
   return expanded;
 }
-

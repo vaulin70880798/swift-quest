@@ -554,11 +554,14 @@ export function SwiftQuestApp() {
       );
 
       if (isPassed) {
-        const nextWorldId = Math.min(12, battle.worldId + 1);
-        updatedPlayer = {
-          ...updatedPlayer,
-          unlockedWorlds: Array.from(new Set([...updatedPlayer.unlockedWorlds, nextWorldId])),
-        };
+        const maxWorldId = worlds[worlds.length - 1]?.id ?? battle.worldId;
+        const nextWorldId = Math.min(maxWorldId, battle.worldId + 1);
+        if (nextWorldId > battle.worldId) {
+          updatedPlayer = {
+            ...updatedPlayer,
+            unlockedWorlds: Array.from(new Set([...updatedPlayer.unlockedWorlds, nextWorldId])),
+          };
+        }
       }
     }
 
