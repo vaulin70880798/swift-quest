@@ -1,4 +1,5 @@
 import { Question } from "@/lib/types";
+import { ensureMinimumWorldQuestions } from "@/lib/questions-expanded";
 
 type World1Draft = Omit<
   Question,
@@ -1095,12 +1096,14 @@ const bossQuestions: Question[] = [
   }),
 ];
 
-export const questionBank: Question[] = [
+const baseQuestionBank: Question[] = [
   ...coreQuestions,
   ...outputQuestions,
   ...advancedQuestions,
   ...bossQuestions,
 ];
+
+export const questionBank: Question[] = ensureMinimumWorldQuestions(baseQuestionBank, 100);
 
 export const world1QuestionIds = questionBank
   .filter((question) => question.worldId === 1)

@@ -1,3 +1,4 @@
+import { worlds } from "@/lib/curriculum";
 import { questionBank } from "@/lib/questions";
 import { Player, Question } from "@/lib/types";
 
@@ -19,6 +20,7 @@ export interface WorldLesson {
   logicSteps: string[];
   examples: LessonExample[];
   questionIds: string[];
+  questionPoolIds?: string[];
 }
 
 export interface WorldExamConfig {
@@ -189,17 +191,176 @@ const world1Lessons: WorldLesson[] = [
   },
 ];
 
+function chunkTopics(topics: string[], chunkCount: number): string[][] {
+  const safeChunkCount = Math.max(1, chunkCount);
+  const chunks: string[][] = Array.from({ length: safeChunkCount }, () => []);
+  for (let index = 0; index < topics.length; index += 1) {
+    chunks[index % safeChunkCount].push(topics[index]);
+  }
+  return chunks;
+}
+
+function normalizeToken(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, "");
+}
+
+function topicMatchesQuestion(question: Question, topic: string): boolean {
+  const token = normalizeToken(topic);
+  const bag = [
+    question.topic,
+    question.subtopic,
+    ...question.tags,
+    question.questionText,
+  ]
+    .join(" ")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  return bag.includes(token);
+}
+
+function pickLessonPool(worldId: number, topics: string[], maxItems = 25): string[] {
+  const candidates = questionBank.filter((question) => {
+    if (question.worldId !== worldId || question.difficulty === "boss") {
+      return false;
+    }
+
+    return topics.some((topic) => topicMatchesQuestion(question, topic));
+  });
+
+  const fallback = questionBank.filter(
+    (question) => question.worldId === worldId && question.difficulty !== "boss",
+  );
+  const pool = candidates.length > 0 ? candidates : fallback;
+
+  return pool.slice(0, maxItems).map((question) => question.id);
+}
+
+interface ExampleSource {
+  topic: string;
+  explanation: string;
+  codeSnippet?: string;
+}
+
+function buildExampleFromQuestion(question: ExampleSource, defaultTitle: string): LessonExample {
+  return {
+    title: defaultTitle,
+    code: question.codeSnippet ?? `// ${question.topic}\nprint("Swift Quest")`,
+    explanation: question.explanation,
+  };
+}
+
+function buildAutoWorldLessons(worldId: number): WorldLesson[] {
+  const world = worlds.find((item) => item.id === worldId);
+  if (!world) {
+    return [];
+  }
+
+  const topicChunks = chunkTopics(world.topicCoverage, 4);
+
+  return topicChunks.map((topics, lessonIndex) => {
+    const order = lessonIndex + 1;
+    const lessonId = `w${worldId}-lesson-${order}`;
+    const concept = topics.join(" / ");
+    const poolIds = pickLessonPool(worldId, topics, 25);
+    const fixedIds = poolIds.slice(0, 10);
+
+    const poolQuestions = poolIds
+      .map((id) => questionBank.find((question) => question.id === id))
+      .filter((question): question is Question => Boolean(question));
+
+    const firstExample = buildExampleFromQuestion(
+      poolQuestions[0] ??
+        {
+          topic: topics[0] ?? "Swift",
+          explanation: "דוגמה בסיסית לנושא.",
+          codeSnippet: `// ${topics[0] ?? "Swift"}\nprint("learning")`,
+        },
+      "דוגמה 1",
+    );
+
+    const secondExample = buildExampleFromQuestion(
+      poolQuestions[1] ??
+        {
+          topic: topics[1] ?? topics[0] ?? "Swift",
+          explanation: "דוגמה נוספת מזווית אחרת.",
+          codeSnippet: `// ${topics[1] ?? topics[0] ?? "Swift"}\nprint("practice")`,
+        },
+      "דוגמה 2",
+    );
+
+    return {
+      id: lessonId,
+      worldId,
+      order,
+      title: `שיעור ${order} - ${world.name}`,
+      concept,
+      summary: `שיעור ממוקד בנושאים: ${concept}.`,
+      deepDive:
+        `בשיעור הזה לומדים את ${concept} לעומק, כולל דוגמאות קוד, פירוק לוגי, ונקודות שגיאה נפוצות.`,
+      keyPoints: [
+        `הבנה מעשית של: ${concept}.`,
+        "קריאת קוד שורה-אחר-שורה לפני בחירת תשובה.",
+        "זיהוי טעויות תחביר/טיפוסים/לוגיקה בצורה שיטתית.",
+      ],
+      logicSteps: [
+        "זהה מה בדיוק השאלה מבקשת לבדוק.",
+        "פרק את הקוד לערכי ביניים קטנים וברורים.",
+        "פסול אופציות לא נכונות לפי כלל קונקרטי, לא לפי תחושה.",
+      ],
+      examples: [firstExample, secondExample],
+      questionIds: fixedIds,
+      questionPoolIds: poolIds,
+    };
+  });
+}
+
+function enrichManualLessonPools(lessons: WorldLesson[]): WorldLesson[] {
+  return lessons.map((lesson) => {
+    const seedTopics = lesson.questionIds
+      .map((id) => questionBank.find((question) => question.id === id))
+      .filter((question): question is Question => Boolean(question))
+      .flatMap((question) => [question.topic, question.subtopic]);
+
+    const uniqueTopics = Array.from(new Set(seedTopics.filter(Boolean)));
+    const poolIds = pickLessonPool(lesson.worldId, uniqueTopics, 25);
+
+    return {
+      ...lesson,
+      questionPoolIds: poolIds.length > 0 ? poolIds : lesson.questionIds,
+    };
+  });
+}
+
+const world1LessonsWithPools = enrichManualLessonPools(world1Lessons);
+
 const worldCoursePlans: Record<number, WorldCoursePlan> = {
   1: {
     worldId: 1,
     title: "קורס יסודות Swift - עולם 1",
-    lessons: world1Lessons,
+    lessons: world1LessonsWithPools,
     exam: {
       questionCount: 30,
       maxMistakes: 5,
     },
   },
 };
+
+for (const world of worlds) {
+  if (worldCoursePlans[world.id]) {
+    continue;
+  }
+
+  worldCoursePlans[world.id] = {
+    worldId: world.id,
+    title: `קורס ${world.name}`,
+    lessons: buildAutoWorldLessons(world.id),
+    exam: {
+      questionCount: 30,
+      maxMistakes: 5,
+    },
+  };
+}
 
 export function getLessonPassRequiredCorrect(): number {
   return LESSON_PASS_REQUIRED_CORRECT;
@@ -229,9 +390,15 @@ export function getLessonQuestions(lessonId: string): Question[] {
     return [];
   }
 
-  return lesson.questionIds
+  const sourceIds = lesson.questionPoolIds?.length
+    ? lesson.questionPoolIds
+    : lesson.questionIds;
+
+  const pool = sourceIds
     .map((id) => questionBank.find((question) => question.id === id))
     .filter((question): question is Question => Boolean(question));
+
+  return shuffle(pool).slice(0, 10);
 }
 
 export function getWorldExamQuestions(worldId: number): Question[] {
@@ -240,7 +407,9 @@ export function getWorldExamQuestions(worldId: number): Question[] {
     return [];
   }
 
-  const lessonQuestionIds = plan.lessons.flatMap((lesson) => lesson.questionIds);
+  const lessonQuestionIds = plan.lessons.flatMap((lesson) =>
+    lesson.questionPoolIds?.length ? lesson.questionPoolIds : lesson.questionIds,
+  );
   const uniqueIds = Array.from(new Set(lessonQuestionIds));
   const pool = uniqueIds
     .map((id) => questionBank.find((question) => question.id === id))

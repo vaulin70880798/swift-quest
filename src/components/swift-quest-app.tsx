@@ -185,6 +185,13 @@ export function SwiftQuestApp() {
     return getWorldLessons(selectedWorldId);
   }, [selectedWorldId]);
 
+  const selectedWorldQuestionCount = useMemo(() => {
+    if (!selectedWorldId) {
+      return 0;
+    }
+    return questionBank.filter((question) => question.worldId === selectedWorldId).length;
+  }, [selectedWorldId]);
+
   const activeLesson = useMemo(() => {
     if (!activeLessonId) {
       return null;
@@ -893,9 +900,9 @@ export function SwiftQuestApp() {
                   </p>
                 </div>
                 <div className="surface-block-success p-3 text-sm">
-                  <p className="text-fog/80">סטטוס מבחן עולם</p>
+                  <p className="text-fog/80">מאגר שאלות עולם</p>
                   <p className="text-base font-semibold text-fog">
-                    {hasPassedWorldExam(player, selectedWorld.id) ? "עבר בהצלחה" : "טרם עבר"}
+                    {selectedWorldQuestionCount} שאלות
                   </p>
                 </div>
                 <div className="surface-block-warning p-3 text-sm">
@@ -927,6 +934,9 @@ export function SwiftQuestApp() {
 
                       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-fog/80">
                         <span className="tag-pill">10 שאלות</span>
+                        <span className="tag-pill">
+                          מאגר: {lesson.questionPoolIds?.length ?? lesson.questionIds.length}
+                        </span>
                         <span className="tag-pill">נדרש: {getLessonPassRequiredCorrect()}/10</span>
                         <span className="tag-pill">
                           שיא: {lessonProgress?.bestCorrect ?? 0}/10
