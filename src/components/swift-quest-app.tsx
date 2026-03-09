@@ -18,11 +18,14 @@ import {
   loadPlayer,
   savePlayer,
   upsertLessonProgress,
+  upsertMiniProjectProgress,
   upsertWorldExamProgress,
 } from "@/lib/game-engine";
 import { codexLibrary } from "@/lib/library";
 import { buildLogicCoachGuide } from "@/lib/logic-coach";
+import { getMiniProjectByWorld } from "@/lib/mini-projects";
 import { questionBank } from "@/lib/questions";
+import { runSwiftConsoleProgram } from "@/lib/swift-console";
 import {
   areAllWorldLessonsPassed,
   getLessonPassRequiredCorrect,
@@ -43,6 +46,7 @@ type Screen =
   | "world_map"
   | "world_course"
   | "lesson_intro"
+  | "mini_project"
   | "battle"
   | "summary"
   | "review"
@@ -133,6 +137,10 @@ function getTodayDateKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function normalizeConsoleOutput(value: string): string {
+  return value.replace(/\r\n/g, "\n").trim();
+}
+
 export function SwiftQuestApp() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [nameInput, setNameInput] = useState("לומד");
@@ -142,6 +150,10 @@ export function SwiftQuestApp() {
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [dailyClaimDate, setDailyClaimDate] = useState<string | null>(null);
+  const [miniProjectCode, setMiniProjectCode] = useState("");
+  const [miniProjectOutput, setMiniProjectOutput] = useState("");
+  const [miniProjectError, setMiniProjectError] = useState<string | null>(null);
+  const [miniProjectPassedNow, setMiniProjectPassedNow] = useState(false);
 
   useEffect(() => {
     const existing = loadPlayer();
@@ -169,6 +181,13 @@ export function SwiftQuestApp() {
       return null;
     }
     return worlds.find((world) => world.id === selectedWorldId) ?? null;
+  }, [selectedWorldId]);
+
+  const selectedMiniProject = useMemo(() => {
+    if (!selectedWorldId) {
+      return null;
+    }
+    return getMiniProjectByWorld(selectedWorldId);
   }, [selectedWorldId]);
 
   const selectedWorldPlan = useMemo(() => {
@@ -205,6 +224,13 @@ export function SwiftQuestApp() {
     }
     return getWorldLessonById(activeLessonId);
   }, [activeLessonId]);
+
+  const selectedMiniProjectProgress = useMemo(() => {
+    if (!player || !selectedWorldId) {
+      return null;
+    }
+    return player.miniProjectProgress[selectedWorldId] ?? null;
+  }, [player, selectedWorldId]);
 
   const weakTopics = useMemo(() => {
     if (!player) {
@@ -404,6 +430,73 @@ export function SwiftQuestApp() {
     });
     setSummary(null);
     setScreen("battle");
+  };
+
+  const openMiniProject = (worldId: number) => {
+    const project = getMiniProjectByWorld(worldId);
+    if (!project) {
+      return;
+    }
+
+    setSelectedWorldId(worldId);
+    setMiniProjectCode(project.starterCode);
+    setMiniProjectOutput("");
+    setMiniProjectError(null);
+    setMiniProjectPassedNow(false);
+    setScreen("mini_project");
+  };
+
+  const resetMiniProjectCode = () => {
+    if (!selectedMiniProject) {
+      return;
+    }
+    setMiniProjectCode(selectedMiniProject.starterCode);
+    setMiniProjectOutput("");
+    setMiniProjectError(null);
+    setMiniProjectPassedNow(false);
+  };
+
+  const runMiniProject = () => {
+    if (!player || !selectedWorldId || !selectedMiniProject) {
+      return;
+    }
+
+    const runResult = runSwiftConsoleProgram(miniProjectCode);
+    const normalizedOutput = normalizeConsoleOutput(runResult.output);
+    const normalizedExpected = normalizeConsoleOutput(selectedMiniProject.expectedOutput);
+    const passed = !runResult.error && normalizedOutput === normalizedExpected;
+
+    setMiniProjectOutput(runResult.output);
+    setMiniProjectError(runResult.error ?? null);
+    setMiniProjectPassedNow(passed);
+
+    setPlayer((currentPlayer) => {
+      if (!currentPlayer) {
+        return currentPlayer;
+      }
+
+      const previousPassed = Boolean(
+        currentPlayer.miniProjectProgress[selectedWorldId]?.passed,
+      );
+      let updated = upsertMiniProjectProgress(
+        currentPlayer,
+        selectedWorldId,
+        runResult.output,
+        passed,
+      );
+
+      if (passed && !previousPassed) {
+        const nextXp = updated.xp + selectedMiniProject.rewardXP;
+        updated = {
+          ...updated,
+          xp: nextXp,
+          coins: updated.coins + selectedMiniProject.rewardCoins,
+          level: Math.max(1, Math.floor(Math.sqrt(nextXp / 120)) + 1),
+        };
+      }
+
+      return updated;
+    });
   };
 
   const startReviewBattle = () => {
@@ -1026,6 +1119,35 @@ export function SwiftQuestApp() {
                   ) : null}
                 </div>
               </div>
+
+              {hasPassedWorldExam(player, selectedWorld.id) && selectedMiniProject ? (
+                <div className="surface-block-success mt-4 rounded-2xl p-4">
+                  <p className="text-sm font-semibold text-mint">מיני פרויקט אופציונלי</p>
+                  <p className="mt-1 text-sm text-fog/90">
+                    פרויקט קצר עם קונסולה: רק אם הפלט תואם בדיוק לדרישה, הפרויקט יעבור.
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-fog/85">
+                    <span className="tag-pill">
+                      סטטוס: {selectedMiniProjectProgress?.passed ? "עבר" : "טרם עבר"}
+                    </span>
+                    <span className="tag-pill">
+                      ניסיונות: {selectedMiniProjectProgress?.attempts ?? 0}
+                    </span>
+                    <span className="tag-pill">
+                      בונוס ראשון: +{selectedMiniProject.rewardXP} XP, +{selectedMiniProject.rewardCoins} מטבעות
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <button
+                      className="btn btn-success"
+                      onClick={() => openMiniProject(selectedWorld.id)}
+                      type="button"
+                    >
+                      פתיחת מיני פרויקט
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </>
           ) : selectedWorldBlueprint ? (
             <div className="space-y-3">
@@ -1152,6 +1274,95 @@ export function SwiftQuestApp() {
             >
               חזרה למסלול העולם
             </button>
+          </div>
+        </section>
+      ) : null}
+
+      {screen === "mini_project" && selectedWorld && selectedMiniProject ? (
+        <section className="card rounded-3xl p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] text-mint">מיני פרויקט אופציונלי</p>
+              <MixedText
+                text={`${selectedMiniProject.title} · ${selectedWorld.name}`}
+                as="h2"
+                className="mt-1 text-xl font-semibold text-fog"
+              />
+              <MixedText text={selectedMiniProject.challenge} as="p" className="mt-1 text-sm text-fog/85" />
+            </div>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setScreen("world_course")}
+              type="button"
+            >
+              חזרה למסלול
+            </button>
+          </div>
+
+          <div className="surface-block-accent rounded-2xl p-4 text-sm text-fog/95">
+            <p className="font-semibold text-sky">תנאי מעבר</p>
+            <p className="mt-1">{selectedMiniProject.successCondition}</p>
+            <p className="mt-2 text-xs text-fog/80">הפלט שנדרש:</p>
+            <pre dir="ltr" className="console-output mt-1 whitespace-pre-wrap">{selectedMiniProject.expectedOutput}</pre>
+          </div>
+
+          <div className="surface-block-muted mt-4 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-fog">עורך קוד (Swift Console)</p>
+            <textarea
+              dir="ltr"
+              value={miniProjectCode}
+              onChange={(event) => setMiniProjectCode(event.target.value)}
+              className="console-editor mt-2 min-h-[220px] w-full rounded-xl px-3 py-3 text-sm outline-none"
+              spellCheck={false}
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button className="btn btn-primary" onClick={runMiniProject} type="button">
+                הרץ קוד ובדוק פלט
+              </button>
+              <button className="btn btn-ghost" onClick={resetMiniProjectCode} type="button">
+                איפוס קוד
+              </button>
+              <button className="btn btn-accent" onClick={() => setScreen("world_course")} type="button">
+                דלג (אופציונלי)
+              </button>
+            </div>
+          </div>
+
+          <div className="surface-block-muted mt-4 rounded-2xl p-4">
+            <p className="text-sm font-semibold text-fog">קונסולה</p>
+            <pre dir="ltr" className="console-output mt-2 whitespace-pre-wrap">
+              {miniProjectOutput || "// עדיין אין פלט. לחץ על 'הרץ קוד ובדוק פלט'."}
+            </pre>
+            {miniProjectError ? (
+              <div className="surface-block-danger mt-3 p-3 text-sm text-[#8f2430]">
+                שגיאה: {miniProjectError}
+              </div>
+            ) : null}
+            {miniProjectPassedNow || selectedMiniProjectProgress?.passed ? (
+              <div className="surface-block-success mt-3 p-3 text-sm text-fog">
+                הפרויקט עבר בהצלחה.
+                {miniProjectPassedNow && !selectedMiniProjectProgress?.passed ? (
+                  <span className="block text-xs">
+                    בונוס: +{selectedMiniProject.rewardXP} XP, +{selectedMiniProject.rewardCoins} מטבעות.
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              <div className="mt-3 text-xs text-fog/80">
+                טיפ: בדוק רווחים ושורות בפלט. ההשוואה היא מדויקת.
+              </div>
+            )}
+          </div>
+
+          <div className="surface-block-accent mt-4 rounded-2xl p-4 text-sm text-fog/95">
+            <p className="font-semibold text-sky">רמזים</p>
+            <ul className="mt-2 space-y-1">
+              {selectedMiniProject.hints.map((hint) => (
+                <li key={hint}>
+                  <MixedText text={`• ${hint}`} />
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
       ) : null}
@@ -1355,6 +1566,15 @@ export function SwiftQuestApp() {
                 type="button"
               >
                 חזרה למסלול עולם
+              </button>
+            ) : null}
+            {summary.sessionType === "world_exam" && summary.passed ? (
+              <button
+                className="btn btn-success"
+                onClick={() => openMiniProject(summary.worldId)}
+                type="button"
+              >
+                מיני פרויקט (אופציונלי)
               </button>
             ) : null}
             <button

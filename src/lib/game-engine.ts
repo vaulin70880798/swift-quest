@@ -1,6 +1,7 @@
 import { questionBank } from "@/lib/questions";
 import {
   LessonProgressEntry,
+  MiniProjectProgressEntry,
   Player,
   Question,
   SessionSummary,
@@ -53,6 +54,7 @@ export function createInitialPlayer(username: string): Player {
     sessionHistory: [],
     lessonProgress: {},
     worldExamProgress: {},
+    miniProjectProgress: {},
   };
 }
 
@@ -102,6 +104,7 @@ export function loadPlayer(): Player | null {
       inventory: parsed.inventory ?? fallback.inventory,
       lessonProgress: parsed.lessonProgress ?? {},
       worldExamProgress: parsed.worldExamProgress ?? {},
+      miniProjectProgress: parsed.miniProjectProgress ?? {},
     };
   } catch {
     return null;
@@ -317,6 +320,35 @@ export function upsertWorldExamProgress(
         bestCorrect: Math.max(previous.bestCorrect, correctAnswers),
         bestMistakes: Math.min(previous.bestMistakes, mistakes),
         passed: previous.passed || passed,
+      },
+    },
+  };
+}
+
+export function upsertMiniProjectProgress(
+  player: Player,
+  worldId: number,
+  output: string,
+  passed: boolean,
+): Player {
+  const previous: MiniProjectProgressEntry = player.miniProjectProgress[worldId] ?? {
+    attempts: 0,
+    passed: false,
+    lastOutput: "",
+  };
+
+  return {
+    ...player,
+    miniProjectProgress: {
+      ...player.miniProjectProgress,
+      [worldId]: {
+        attempts: previous.attempts + 1,
+        passed: previous.passed || passed,
+        lastOutput: output,
+        passedAtISO:
+          previous.passed || !passed
+            ? previous.passedAtISO
+            : new Date().toISOString(),
       },
     },
   };

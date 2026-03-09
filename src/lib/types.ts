@@ -62,6 +62,13 @@ export interface WorldExamProgressEntry {
   passed: boolean;
 }
 
+export interface MiniProjectProgressEntry {
+  attempts: number;
+  passed: boolean;
+  lastOutput: string;
+  passedAtISO?: string;
+}
+
 export interface Player {
   id: string;
   username: string;
@@ -81,6 +88,7 @@ export interface Player {
   sessionHistory: SessionSummary[];
   lessonProgress: Record<string, LessonProgressEntry>;
   worldExamProgress: Record<number, WorldExamProgressEntry>;
+  miniProjectProgress: Record<number, MiniProjectProgressEntry>;
 }
 
 export interface World {

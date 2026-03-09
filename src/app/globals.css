@@ -258,6 +258,29 @@ code {
   padding: 0.58rem 0.72rem;
 }
 
+.console-editor {
+  border: 1px solid rgba(69, 123, 157, 0.35);
+  background: #07111f;
+  color: #dcecff;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  line-height: 1.55;
+}
+
+.console-editor::placeholder {
+  color: #94adcb;
+}
+
+.console-output {
+  margin: 0;
+  border: 1px solid rgba(69, 123, 157, 0.35);
+  border-radius: 0.78rem;
+  background: #07111f;
+  color: #dcecff;
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+  padding: 0.75rem 0.85rem;
+  min-height: 80px;
+}
+
 .mixed-text {
   unicode-bidi: plaintext;
 }
